@@ -5,6 +5,9 @@
 *.tfstate
 *.tfstate.*
 
+# .terraform provider version file
+.terraform.lock.hcl
+
 # Crash log files
 crash.log
 crash.*.log
