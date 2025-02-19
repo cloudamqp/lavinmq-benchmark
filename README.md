@@ -2,6 +2,9 @@
 
 Run automate benchmark against LavinMQ with help of CloudAMQP Terraform Provider.
 
+> [!CAUTION]
+> Currently missing correct internal URL from the backend to make correct AMQP message publish/delivery.
+
 ## Prerequisites
 
 - ***Golang***: Install Golang, follow [Golang's installation guide](https://go.dev/doc/install)
