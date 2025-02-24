@@ -45,6 +45,8 @@ benchmark_versions = tolist(["2.0.2", null])
 
 ## Run
 
+Working directory is `configuration/`
+
 ### Initial provider
 
 Before running the benchmark the providers needs to be initialized. This will dowload the latest
@@ -92,7 +94,7 @@ Limited to only re-run one pertftest.
   </summary>
   If more then one benchmark server is used and re-run all perftest. This will require two commands.
   First destroy the resource followed by apply.
-  
+
   ```console
   dotenv terraform destroy -target terraform_data.local_exec
   dotenv terraform apply
