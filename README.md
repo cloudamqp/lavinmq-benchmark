@@ -135,6 +135,9 @@ terraform_data.local_exec[0]: Creation complete after 2m0s [id=58356ae0-222f-f47
 > [!NOTE]
 >First attempts have lower througput, due to servers still running post bootstrap.
 
+While running locally. Machines can be configured with ENV["SKIP_POST_BOOTSTRAP"]
+to skip the post bootstrap.
+
 ## Ongoing work
 
 - Work around to hold off post bootstrap.
