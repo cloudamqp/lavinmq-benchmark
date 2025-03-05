@@ -18,18 +18,18 @@ To use local environment file see: [Handbook](https://github.com/84codes/handboo
 
 ## Configuration
 
-Change the local variables in `./configuraiton/locals.tf` to change the behavior
+Change the local variables in `./configuration/locals.tf` to change the behavior
 
 - ***benchmark_plan:*** subscription plan for the server to be benchmarked
-- ***benchmark_version:*** LavinMQ version(s) used by the benchmark server(s). (Set to null to
+- ***benchmark_versions:*** LavinMQ version(s) used by the benchmark server(s). (Set to null to
 get latest)
-- ***perftest_plan:*** subscription plan for the server running `lavinmqperftest`
-- ***region:*** provider and region to host everything
+- ***perftest_plan:*** subscription plan for the server running `lavinmqperf`
+- ***region:*** cloud provider and region to host everything
 - ***tags:*** tag all the resources
 - ***perftest:*** the perftest command to be used (leave out --uri= parameter, this will be assinged
 during the run)
 
-To run multiple benchmark servers, add more then one version to `benchmark_version`.
+To run multiple benchmark servers, add more then one version to `benchmark_versions`.
 
 Benchmark on one server with latest available version
 
