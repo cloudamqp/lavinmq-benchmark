@@ -4,7 +4,7 @@ resource "terraform_data" "perftest_command" {
 
   input = format("ssh %s '%s --uri=%s'",
     data.cloudamqp_nodes.perftest-nodes[count.index].nodes[0].hostname,
-    local.perftest,
+    local.perftest_command,
     cloudamqp_instance.instance[count.index].url
   )
 }

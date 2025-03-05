@@ -16,31 +16,50 @@ The environmental variables can either be set in the command, export or via envi
 
 To use local environment file see: [Handbook](https://github.com/84codes/handbook/blob/main/terraform/run-locally.md#apply-the-configuration)
 
-## Configuration
+## CloudAMQP configuration
 
-Change the local variables in `./configuration/locals.tf` to change the behavior
+Running the benchmark with servers created through CloudAMQP. Change the local variables in
+`./CloudAMQP/configuration/locals.tf` to change the behavior
 
-- ***benchmark_plan:*** subscription plan for the server to be benchmarked
-- ***benchmark_versions:*** LavinMQ version(s) used by the benchmark server(s). (Set to null to
+### Benchmark variables
+
+Variables to be used for benchmark servers
+
+- ***plan:*** subscription plan for the server to be benchmarked
+- ***versions:*** LavinMQ version(s) used by the benchmark server(s). (Set to null to
 get latest)
-- ***perftest_plan:*** subscription plan for the server running `lavinmqperf`
+
+### Perftest variable
+
+Variable to be used for perftest servers
+
+- ***plan:*** subscription plan for the server running `lavinmqperf`
+
+### Genric variables
+
 - ***region:*** cloud provider and region to host everything
 - ***tags:*** tag all the resources
 - ***perftest:*** the perftest command to be used (leave out --uri= parameter, this will be assinged
 during the run)
 
-To run multiple benchmark servers, add more then one version to `benchmark_versions`.
+### Multiple servers
+
+To run multiple benchmark servers, add more then one version to `benchmark.versions`.
 
 Benchmark on one server with latest available version
 
 ```hcl
-benchmark_versions = tolist([null])
+benchmark = {
+  versions = tolist([null])
+}
 ```
 
 Benchmark on multiple server with different benchmark_versions
 
 ```hcl
-benchmark_versions = tolist(["2.0.2", null])
+benchmark = {
+  versions = tolist(["2.0.2", null])
+}
 ```
 
 ## Run

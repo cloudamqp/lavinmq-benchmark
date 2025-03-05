@@ -16,23 +16,23 @@ resource "cloudamqp_vpc" "vpc" {
 
 # Instance being benchmarked
 resource "cloudamqp_instance" "instance" {
-  count = length(local.benchmark_versions)
+  count = length(local.benchmark.versions)
 
   name                = "lavinmq-benchmark-${count.index}"
-  plan                = local.benchmark_plan
+  plan                = local.benchmark.plan
   region              = local.region
   tags                = local.tags
-  rmq_version         = local.benchmark_versions[count.index]
+  rmq_version         = local.benchmark.versions[count.index]
   vpc_id              = cloudamqp_vpc.vpc.id
   keep_associated_vpc = true
 }
 
 # Instance running perftest
 resource "cloudamqp_instance" "perftest" {
-  count = length(local.benchmark_versions)
+  count = length(local.benchmark.versions)
 
   name                = "lavinmqperftest"
-  plan                = local.perftest_plan
+  plan                = local.perftest.plan
   region              = local.region
   tags                = local.tags
   vpc_id              = cloudamqp_vpc.vpc.id
