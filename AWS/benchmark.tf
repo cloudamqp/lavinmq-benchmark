@@ -1,8 +1,8 @@
 resource "aws_instance" "benchmark" {
-  ami             = data.aws_ami.ubuntu.id
-  instance_type   = local.benchmark.instance_type
-  subnet_id       = aws_subnet.subnet.id
-  key_name        = aws_key_pair.ssh-key.key_name
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = local.benchmark.instance_type
+  subnet_id     = aws_subnet.subnet.id
+  key_name      = aws_key_pair.ssh-key.key_name
 
   user_data = local.bootstrap
 

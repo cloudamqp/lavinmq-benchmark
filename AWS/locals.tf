@@ -11,7 +11,7 @@ locals {
   }
 
   created_by = "tobias@tobias-XPS-9315"
-  name       = "tobias-test" 
+  name       = "tobias-test"
 }
 
 locals {
