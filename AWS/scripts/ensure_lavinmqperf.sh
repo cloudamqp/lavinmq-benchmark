@@ -10,9 +10,10 @@ do
   then
     echo "lavinmqperf found"
     exit 0
+  else
+    sleep 25
+    (( tries++ ))
   fi
-  sleep 25
-  (( tries++ ))
 done
 echo "Failed to find lavinmqperf"
 exit 1

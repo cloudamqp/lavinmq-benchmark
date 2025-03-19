@@ -4,7 +4,7 @@ resource "aws_instance" "benchmark" {
   subnet_id     = aws_subnet.subnet.id
   key_name      = aws_key_pair.ssh-key.key_name
 
-  user_data = local.bootstrap
+  user_data = file("scripts/bootstrap.sh")
 
   tags = {
     Name      = local.benchmark.name
