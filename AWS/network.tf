@@ -1,8 +1,3 @@
-# input parameters of the module
-# variable availability_zone {}
-# variable tag_created_by {}
-# variable tag_name {}
-
 resource "aws_vpc" "vpc" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
