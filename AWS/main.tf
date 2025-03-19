@@ -2,15 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# # create network
-# module "network" {
-#   source = "./network"
-
-#   availability_zone = var.aws_availability_zone
-#   tag_created_by    = var.tag_created_by
-#   tag_name          = var.tag_name
-# }
-
 # create servers
 module "benchmark" {
   source = "./instance"
