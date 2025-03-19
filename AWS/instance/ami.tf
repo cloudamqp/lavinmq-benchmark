@@ -1,9 +1,14 @@
+variable ami_arch {}
+
 data "aws_ami" "ubuntu" {
   most_recent = true
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"]
+    values = [
+      format("ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-%s-server-*",
+      var.ami_arch)
+    ]
   }
 
   filter {

@@ -1,14 +1,15 @@
-provider "aws" {
-  region = "eu-central-1"
-}
+# input parameters of the module
+# variable availability_zone {}
+# variable tag_created_by {}
+# variable tag_name {}
 
 resource "aws_vpc" "vpc" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
 
   tags = {
-    Name      = local.name
-    CreatedBy = local.created_by
+    Name      = var.tag_name
+    CreatedBy = var.tag_created_by
   }
 }
 
@@ -16,22 +17,22 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name      = local.name
-    CreatedBy = local.created_by
+    Name      = var.tag_name
+    CreatedBy = var.tag_created_by
   }
 }
 
 resource "aws_subnet" "subnet" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = "172.16.10.0/24"
-  availability_zone       = "eu-central-1a"
+  availability_zone       = var.aws_availability_zone
   map_public_ip_on_launch = true
 
   depends_on = [aws_internet_gateway.gw]
 
   tags = {
-    Name      = local.name
-    CreatedBy = local.created_by
+    Name      = var.tag_name
+    CreatedBy = var.tag_created_by
   }
 }
 
@@ -53,8 +54,8 @@ resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
   # to_port     = 22
 
   tags = {
-    Name      = local.name
-    CreatedBy = local.created_by
+    Name      = var.tag_name
+    CreatedBy = var.tag_created_by
   }
 }
 

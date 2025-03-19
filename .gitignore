@@ -40,4 +40,5 @@ override.tf.json
 terraform.rc
 
 # Ignore environment file
-*.env
+Cloudamqp/configuration/.env
+AWS/.env
