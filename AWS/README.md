@@ -6,8 +6,8 @@ There is a template on which enviromental variables that are needed.
 `./env_template`
 
 > [!NOTE]
-> For Terraform to read the variables. They need to be prefixed with `TF_VAR_` and are case
-> sensitive.
+> For Terraform to read the variables used in the configuration. They need to be prefixed
+> with `TF_VAR_` and are case sensitive.
 
 ## Run
 
