@@ -50,6 +50,8 @@ resource "terraform_data" "perftest" {
     agent = true
   }
 
+  triggers_replace = [var.perftest_command]
+
   provisioner "remote-exec" {
     inline = [
       format("%s %s",
