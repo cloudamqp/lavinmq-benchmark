@@ -26,6 +26,11 @@ variable public_ssh_key {
   type = string
 }
 
+# SSH key name
+variable ssh_key_name {
+  type = string
+}
+
 # Benchmark server
 variable benchmark_instance_type {
   type = string
