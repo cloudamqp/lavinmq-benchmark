@@ -38,3 +38,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Ignore environment file
+Cloudamqp/configuration/.env
+AWS/.env
