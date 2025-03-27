@@ -40,13 +40,12 @@ resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
   security_group_id = aws_vpc.vpc.default_security_group_id
 
   cidr_ipv4   = "0.0.0.0/0"
-  ip_protocol = "-1"
+  ip_protocol = "tcp"
+  from_port   = 22
+  to_port     = 22
 
-  # TODO: Once connection is established correctly, no need to reach mgmt interface.
-  # TODO: Enough to just open SSH port
-  # ip_protocol = "tcp"
-  # from_port   = 22
-  # to_port     = 22
+  # Use to allow incoming traffic
+  # ip_protocol = "-1"
 
   tags = {
     Name      = var.tag_name

@@ -14,6 +14,5 @@ apt update
 apt install lavinmq -y
 
 lavinmqctl add_user perftest perftest
-# TODO: Remove, only needed to access mgmt interface
 lavinmqctl set_user_tags perftest administrator
 lavinmqctl set_permissions perftest .* .* .*
