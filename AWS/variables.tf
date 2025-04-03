@@ -31,6 +31,11 @@ variable ssh_key_name {
   type = string
 }
 
+variable lavinmq_version {
+  type = string
+  default = ""
+}
+
 # Benchmark server
 variable benchmark_instance_type {
   type = string

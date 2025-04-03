@@ -5,6 +5,7 @@ variable "tag_created_by" {}
 
 variable "subnet_id" {}
 variable "ssh_key_pair_name" {}
+variable "lavinmq_version" {}
 
 
 resource "aws_instance" "instance" {
@@ -13,7 +14,8 @@ resource "aws_instance" "instance" {
   subnet_id     = var.subnet_id
   key_name      = var.ssh_key_pair_name
 
-  user_data = file("${path.root}/scripts/bootstrap.sh")
+  user_data = templatefile("${path.root}/scripts/bootstrap.sh",
+    { LAVINMQ_VERSION = var.lavinmq_version})
 
   tags = {
     Name      = var.instance_name
