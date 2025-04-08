@@ -2,7 +2,7 @@ resource "terraform_data" "ensure_lavinmq" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.benchmark.public_dns
+    host  = module.broker.public_dns
     agent = true
   }
 
@@ -23,7 +23,7 @@ resource "terraform_data" "ensure_lavinmqperf" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.perftest.public_dns
+    host  = module.load_generator.public_dns
     agent = true
   }
 
@@ -46,7 +46,7 @@ resource "terraform_data" "perftest" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.perftest.public_dns
+    host  = module.load_generator.public_dns
     agent = true
   }
 
@@ -57,7 +57,7 @@ resource "terraform_data" "perftest" {
       format("%s %s",
         var.perftest_command,
         format("--uri=amqp://perftest:perftest@%s",
-          module.benchmark.private_ip
+          module.broker.private_ip
         )
       )
     ]

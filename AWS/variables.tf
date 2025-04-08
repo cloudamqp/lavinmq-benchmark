@@ -36,21 +36,22 @@ variable lavinmq_version {
   default = ""
 }
 
-# Benchmark server
-variable benchmark_instance_type {
+# Benchmark servers
+# Broker server
+variable broker_instance_type {
   type = string
 }
 
-variable benchmark_name {
+variable broker_name {
   type = string
 }
 
-# Perftest server
-variable perftest_instance_type {
+# Load generator server
+variable load_generator_instance_type {
   type = string
 }
 
-variable perftest_name {
+variable load_generator_name {
   type = string
 }
 
