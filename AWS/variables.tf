@@ -37,6 +37,7 @@ variable lavinmq_version {
 }
 
 # Benchmark servers
+
 # Broker server
 variable broker_instance_type {
   type = string
@@ -44,6 +45,12 @@ variable broker_instance_type {
 
 variable broker_name {
   type = string
+}
+
+variable "broker_volume_size" {
+  description = "Set the root disk volume size"
+  type = number
+  default = 8
 }
 
 # Load generator server
@@ -55,6 +62,13 @@ variable load_generator_name {
   type = string
 }
 
+variable "load_generator_volume_size" {
+  description = "Set the root disk volume size"
+  type = number
+  default = 8
+}
+
+# Performance test command
 variable perftest_command {
   type    = string
   default = ""

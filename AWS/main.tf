@@ -13,6 +13,7 @@ module "broker" {
   tag_created_by    = var.tag_created_by
   subnet_id         = aws_subnet.subnet.id
   ssh_key_pair_name = aws_key_pair.ssh_key.key_name
+  volume_size       = var.broker_volume_size
 }
 
 module "load_generator" {
@@ -25,4 +26,5 @@ module "load_generator" {
   tag_created_by    = var.tag_created_by
   subnet_id         = aws_subnet.subnet.id
   ssh_key_pair_name = aws_key_pair.ssh_key.key_name
+  volume_size       = var.load_generator_volume_size
 }

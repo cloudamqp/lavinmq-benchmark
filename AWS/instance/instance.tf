@@ -6,6 +6,7 @@ variable "tag_created_by" {}
 variable "subnet_id" {}
 variable "ssh_key_pair_name" {}
 variable "lavinmq_version" {}
+variable "volume_size" {}
 
 
 resource "aws_instance" "instance" {
@@ -16,6 +17,10 @@ resource "aws_instance" "instance" {
 
   user_data = templatefile("${path.root}/scripts/bootstrap.sh",
     { LAVINMQ_VERSION = var.lavinmq_version})
+
+  root_block_device {
+    volume_size = var.volume_size
+  }
 
   tags = {
     Name      = var.instance_name
@@ -33,8 +38,6 @@ resource "aws_eip" "this" {
     Name      = var.instance_name
     CreatedBy = var.tag_created_by
   }
-
-  # depends_on = [aws_internet_gateway.gw]
 }
 
 output "public_dns" {
