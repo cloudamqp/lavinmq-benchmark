@@ -1,13 +1,30 @@
+variable broker_public_dns {
+  type = string
+}
+
+variable broker_private_ip {
+  type = string
+}
+
+variable load_generator_public_dns {
+  type = string
+}
+
+variable perftest_command {
+  type = string
+  default = ""
+}
+
 resource "terraform_data" "ensure_lavinmq" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.broker.public_dns
+    host  = var.broker_public_dns
     agent = true
   }
 
   provisioner "file" {
-    source      = "scripts/ensure_lavinmq.sh"
+    source      = "../../scripts/ensure_lavinmq.sh"
     destination = "/tmp/ensure_lavinmq.sh"
   }
 
@@ -23,12 +40,12 @@ resource "terraform_data" "ensure_lavinmqperf" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.load_generator.public_dns
+    host  = var.load_generator_public_dns
     agent = true
   }
 
   provisioner "file" {
-    source      = "scripts/ensure_lavinmqperf.sh"
+    source      = "../../scripts/ensure_lavinmqperf.sh"
     destination = "/tmp/ensure_lavinmqperf.sh"
   }
 
@@ -46,7 +63,7 @@ resource "terraform_data" "perftest" {
   connection {
     type  = "ssh"
     user  = "ubuntu"
-    host  = module.load_generator.public_dns
+    host  = var.load_generator_public_dns
     agent = true
   }
 
@@ -57,7 +74,7 @@ resource "terraform_data" "perftest" {
       format("%s %s",
         var.perftest_command,
         format("--uri=amqp://perftest:perftest@%s",
-          module.broker.private_ip
+          var.broker_private_ip
         )
       )
     ]

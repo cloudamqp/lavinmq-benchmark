@@ -21,6 +21,12 @@ variable ami_arch {
   type = string
 }
 
+# Ubuntu code name
+variable ubuntu_code_name {
+  type = string
+  default = "noble"
+}
+
 # Public SSH key path
 variable public_ssh_key {
   type = string
@@ -37,8 +43,7 @@ variable lavinmq_version {
 }
 
 # Benchmark servers
-
-# Broker server
+## Broker server
 variable broker_instance_type {
   type = string
 }
@@ -53,7 +58,7 @@ variable "broker_volume_size" {
   default = 8
 }
 
-# Load generator server
+## Load generator server
 variable load_generator_instance_type {
   type = string
 }
@@ -68,7 +73,7 @@ variable "load_generator_volume_size" {
   default = 8
 }
 
-# Performance test command
+## Performance test command
 variable perftest_command {
   type    = string
   default = ""
