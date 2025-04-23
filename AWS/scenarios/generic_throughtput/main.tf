@@ -2,29 +2,60 @@ provider "aws" {
   region = var.aws_region
 }
 
+module "network" {
+  source = "../../modules/network"
+
+  aws_availability_zone = var.aws_availability_zone
+  tag_created_by        = var.tag_created_by
+  tag_name              = var.tag_name
+}
+
+module "ssh" {
+  source = "../../modules/ssh"
+
+  ssh_key_name   = var.ssh_key_name
+  public_ssh_key = var.public_ssh_key
+}
+
 # create servers
 module "broker" {
-  source = "./instance"
+  source = "../../modules/instance"
 
   instance_type     = var.broker_instance_type
   instance_name     = var.broker_name
-  ami_arch          = var.ami_arch
   lavinmq_version   = var.lavinmq_version
   tag_created_by    = var.tag_created_by
-  subnet_id         = aws_subnet.subnet.id
-  ssh_key_pair_name = aws_key_pair.ssh_key.key_name
+
+  subnet_id         = module.network.subnet_identifier
+
+  ami_arch          = var.ami_arch
+  ubuntu_code_name  = var.ubuntu_code_name
   volume_size       = var.broker_volume_size
+  
+  ssh_key_pair_name = var.ssh_key_name
 }
 
 module "load_generator" {
-  source = "./instance"
+  source = "../../modules/instance"
 
   instance_type     = var.load_generator_instance_type
   instance_name     = var.load_generator_name
-  ami_arch          = var.ami_arch
   lavinmq_version   = var.lavinmq_version
   tag_created_by    = var.tag_created_by
-  subnet_id         = aws_subnet.subnet.id
-  ssh_key_pair_name = aws_key_pair.ssh_key.key_name
+  subnet_id         = module.network.subnet_identifier
+
+  ami_arch          = var.ami_arch
+  ubuntu_code_name  = var.ubuntu_code_name
   volume_size       = var.load_generator_volume_size
+  
+  ssh_key_pair_name = var.ssh_key_name
+}
+
+module "remote_execute" {
+  source = "../../modules/remote_execute" 
+
+  broker_public_dns         = module.broker.public_dns
+  broker_private_ip         = module.broker.private_ip
+  load_generator_public_dns = module.load_generator.public_dns
+  perftest_command          = var.perftest_command
 }
