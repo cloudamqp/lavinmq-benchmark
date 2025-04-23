@@ -1,3 +1,7 @@
+variable aws_availability_zone {}
+variable tag_created_by {}
+variable tag_name {}
+
 resource "aws_vpc" "vpc" {
   cidr_block           = "172.16.0.0/16"
   enable_dns_hostnames = true
@@ -29,6 +33,10 @@ resource "aws_subnet" "subnet" {
     Name      = var.tag_name
     CreatedBy = var.tag_created_by
   }
+}
+
+output "subnet_identifier" {
+  value = aws_subnet.subnet.id
 }
 
 resource "aws_route_table_association" "rt-a" {
