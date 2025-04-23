@@ -16,7 +16,8 @@ found in the [documentation](https://lavinmq.com/documentation/lavinmqperf).
 
 ### Initalize
 
-Initialize the AWS provider and modules with:
+Change directory to any scenario (e.g. `./scenarios/generic_throughput`) and initialize the AWS
+provider and moudles with:
 
 ```console
 dotenv terraform init
@@ -33,11 +34,11 @@ dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1
 
 ### Re-run the same performance test
 
-To re-run the same test, include a replace of the `terraform_data.perftest` resource.
+To re-run the same test, use replace on the module with the `terraform_data.perftest` resource.
 This is the resource that invokes the command.
 
 ```console
-dotenv terraform apply -replace terraform_data.perftest \
+dotenv terraform apply -replace="module.remote_execute.terraform_data.perftest" \
 -var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16"
 ```
 
