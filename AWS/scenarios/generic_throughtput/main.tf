@@ -36,10 +36,11 @@ module "broker" {
 }
 
 module "load_generator" {
+  count = length(var.load_generator_instance_type)
   source = "../../modules/instance"
 
-  instance_type     = var.load_generator_instance_type
-  instance_name     = var.load_generator_name
+  instance_type     = var.load_generator_instance_type[count.index]
+  instance_name     = format("%s_%s", var.load_generator_name, count.index)
   lavinmq_version   = var.lavinmq_version
   tag_created_by    = var.tag_created_by
   subnet_id         = module.network.subnet_identifier
@@ -52,10 +53,11 @@ module "load_generator" {
 }
 
 module "remote_execute" {
+  count = length(var.load_generator_instance_type)
   source = "../../modules/remote_execute" 
 
   broker_public_dns         = module.broker.public_dns
   broker_private_ip         = module.broker.private_ip
-  load_generator_public_dns = module.load_generator.public_dns
+  load_generator_public_dns = module.load_generator[count.index].public_dns
   perftest_command          = var.perftest_command
 }
