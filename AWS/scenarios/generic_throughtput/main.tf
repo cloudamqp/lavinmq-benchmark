@@ -36,10 +36,10 @@ module "broker" {
 }
 
 module "load_generator" {
-  count = length(var.load_generator_instance_type)
+  count = var.load_generator_count
   source = "../../modules/instance"
 
-  instance_type     = var.load_generator_instance_type[count.index]
+  instance_type     = var.load_generator_instance_type
   instance_name     = format("%s_%s", var.load_generator_name, count.index)
   lavinmq_version   = var.lavinmq_version
   tag_created_by    = var.tag_created_by
@@ -53,7 +53,7 @@ module "load_generator" {
 }
 
 module "remote_execute" {
-  count = length(var.load_generator_instance_type)
+  count = var.load_generator_count
   source = "../../modules/remote_execute" 
 
   broker_public_dns         = module.broker.public_dns

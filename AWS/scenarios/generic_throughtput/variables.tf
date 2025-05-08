@@ -59,8 +59,12 @@ variable "broker_volume_size" {
 }
 
 ## Load generator server
+variable load_generator_count {
+  type = number
+  default = 1
+}
 variable load_generator_instance_type {
-  type = list(string)
+  type = string
 }
 
 variable load_generator_name {
