@@ -17,7 +17,14 @@ module "ssh" {
   public_ssh_key = var.public_ssh_key
 }
 
-# create servers
+
+module "ami" {
+  source = "../../modules/ami"
+
+  ami_arch         = var.ami_arch
+  ubuntu_code_name = var.ubuntu_code_name
+}
+
 module "broker" {
   source = "../../modules/instance"
 
@@ -28,8 +35,7 @@ module "broker" {
 
   subnet_id         = module.network.subnet_identifier
 
-  ami_arch          = var.ami_arch
-  ubuntu_code_name  = var.ubuntu_code_name
+  ami_id            = module.ami.ami_id
   volume_size       = var.broker_volume_size
   
   ssh_key_pair_name = var.ssh_key_name
@@ -45,8 +51,7 @@ module "load_generator" {
   tag_created_by    = var.tag_created_by
   subnet_id         = module.network.subnet_identifier
 
-  ami_arch          = var.ami_arch
-  ubuntu_code_name  = var.ubuntu_code_name
+  ami_id            = module.ami.ami_id
   volume_size       = var.load_generator_volume_size
   
   ssh_key_pair_name = var.ssh_key_name

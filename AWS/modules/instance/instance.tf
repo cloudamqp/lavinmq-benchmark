@@ -1,4 +1,5 @@
 # input parameters of the module
+variable "ami_id" {}
 variable "instance_type" {}
 variable "instance_name" {}
 variable "tag_created_by" {}
@@ -10,7 +11,7 @@ variable "volume_size" {}
 
 
 resource "aws_instance" "instance" {
-  ami           = data.aws_ami.ubuntu.id
+  ami           = var.ami_id
   instance_type = var.instance_type
   subnet_id     = var.subnet_id
   key_name      = var.ssh_key_pair_name
