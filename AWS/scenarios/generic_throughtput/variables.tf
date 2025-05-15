@@ -1,4 +1,5 @@
-# AWS region
+# AWS variables
+## AWS region and AZ
 variable aws_region {
   type = string
 }
@@ -7,7 +8,7 @@ variable aws_availability_zone {
   type = string
 }
 
-# AWS resource tags
+## Tag the AWS resources
 variable "tag_created_by" {
   type = string
 }
@@ -16,14 +17,15 @@ variable tag_name {
   type = string
 }
 
-# AMI architecture
+## AMI architecture
 variable ami_arch {
-  type = string
+  type    = string
+  default = "arm64"
 }
 
-# Ubuntu code name
+## Ubuntu code name
 variable ubuntu_code_name {
-  type = string
+  type    = string
   default = "noble"
 }
 
@@ -37,12 +39,13 @@ variable ssh_key_name {
   type = string
 }
 
+# Benchmark servers
+
 variable lavinmq_version {
-  type = string
+  type    = string
   default = ""
 }
 
-# Benchmark servers
 ## Broker server
 variable broker_instance_type {
   type = string
@@ -77,7 +80,6 @@ variable "load_generator_volume_size" {
   default = 8
 }
 
-## Performance test command
 variable perftest_command {
   type    = string
   default = ""
