@@ -9,7 +9,7 @@ resource "terraform_data" "install_crystal" {
   }
 
   provisioner "file" {
-    source      = "../../scripts/install_crystal.sh"
+    source      = "../../../scripts/install_crystal.sh"
     destination = "/tmp/install_crystal.sh"
   }
 
@@ -32,7 +32,7 @@ resource "terraform_data" "install_lavinmq" {
   }
 
   provisioner "file" {
-    source      = "../../scripts/install_lavinmq.sh"
+    source      = "../../../scripts/install_lavinmq.sh"
     destination = "/tmp/install_lavinmq.sh"
   }
 
