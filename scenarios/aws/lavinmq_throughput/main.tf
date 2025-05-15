@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 module "network" {
-  source = "../../modules/network"
+  source = "../../../modules/providers/aws/network"
 
   aws_availability_zone = var.aws_availability_zone
   tag_created_by        = var.tag_created_by
@@ -11,7 +11,7 @@ module "network" {
 }
 
 module "ssh" {
-  source = "../../modules/ssh"
+  source = "../../../modules/providers/aws/ssh"
 
   ssh_key_name   = var.ssh_key_name
   public_ssh_key = var.public_ssh_key
@@ -19,14 +19,14 @@ module "ssh" {
 
 
 module "ami" {
-  source = "../../modules/ami"
+  source = "../../../modules/providers/aws/ami"
 
   ami_arch         = var.ami_arch
   ubuntu_code_name = var.ubuntu_code_name
 }
 
 module "broker" {
-  source = "../../modules/broker"
+  source = "../../../modules/providers/aws/broker"
 
   # Create AWS instance
   ami_id              = module.ami.ami_id
@@ -46,7 +46,7 @@ module "broker" {
 
 module "load_generator" {
   count = var.load_generator_count
-  source = "../../modules/load_generator"
+  source = "../../../modules/providers/aws/load_generator"
 
   # Create AWS instance
   ami_id            = module.ami.ami_id
@@ -66,7 +66,7 @@ module "load_generator" {
 
 module "performance_test" {
   count = var.load_generator_count
-  source = "../../modules/perftest"
+  source = "../../../modules/perftest"
 
   broker_private_ip         = module.broker.private_ip
   load_generator_public_dns = module.load_generator[count.index].public_dns

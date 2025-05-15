@@ -1,5 +1,5 @@
 module "instance" {
-  source = "../../modules/instance"
+  source = "../instance"
 
   ami_id            = var.ami_id
   instance_type     = var.instance_type
@@ -11,7 +11,7 @@ module "instance" {
 }
 
 module "install_lavinmq" {
-  source = "../../modules/lavinmq"
+  source = "../../../lavinmq"
 
   public_dns          = module.instance.public_dns
   install_crystal     = var.install_crystal
