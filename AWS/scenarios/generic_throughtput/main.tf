@@ -26,42 +26,48 @@ module "ami" {
 }
 
 module "broker" {
-  source = "../../modules/instance"
+  source = "../../modules/broker"
 
-  instance_type     = var.broker_instance_type
-  instance_name     = var.broker_name
-  lavinmq_version   = var.lavinmq_version
-  tag_created_by    = var.tag_created_by
+  # Create AWS instance
+  ami_id              = module.ami.ami_id
+  instance_type       = var.broker_instance_type
+  ssh_key_name        = var.ssh_key_name
+  subnet_id           = module.network.subnet_identifier
+  tag_created_by      = var.tag_created_by
+  tag_name            = var.broker_name
+  volume_size         = var.broker_volume_size
 
-  subnet_id         = module.network.subnet_identifier
-
-  ami_id            = module.ami.ami_id
-  volume_size       = var.broker_volume_size
-  
-  ssh_key_pair_name = var.ssh_key_name
+  # Install lavinmq
+  install_crystal     = true
+  lavinmq_version     = var.lavinmq_version
+  install_lavinmq     = true
+  create_lavinmq_user = true
 }
 
 module "load_generator" {
   count = var.load_generator_count
-  source = "../../modules/instance"
+  source = "../../modules/load_generator"
 
-  instance_type     = var.load_generator_instance_type
-  instance_name     = format("%s_%s", var.load_generator_name, count.index)
-  lavinmq_version   = var.lavinmq_version
-  tag_created_by    = var.tag_created_by
-  subnet_id         = module.network.subnet_identifier
-
+  # Create AWS instance
   ami_id            = module.ami.ami_id
+  instance_type     = var.load_generator_instance_type
+  ssh_key_name      = var.ssh_key_name
+  subnet_id         = module.network.subnet_identifier
+  tag_name          = format("%s_%s", var.load_generator_name, count.index)
+  tag_created_by    = var.tag_created_by
   volume_size       = var.load_generator_volume_size
   
-  ssh_key_pair_name = var.ssh_key_name
+  # Install lavinmq
+  install_crystal = true
+  lavinmq_version = var.lavinmq_version
+  install_lavinmq = true
+  stop_lavinmq    = true
 }
 
-module "remote_execute" {
+module "performance_test" {
   count = var.load_generator_count
-  source = "../../modules/remote_execute" 
+  source = "../../modules/perftest"
 
-  broker_public_dns         = module.broker.public_dns
   broker_private_ip         = module.broker.private_ip
   load_generator_public_dns = module.load_generator[count.index].public_dns
   perftest_command          = var.perftest_command

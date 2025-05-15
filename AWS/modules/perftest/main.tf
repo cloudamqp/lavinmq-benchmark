@@ -1,7 +1,3 @@
-variable broker_public_dns {
-  type = string
-}
-
 variable broker_private_ip {
   type = string
 }
@@ -13,27 +9,6 @@ variable load_generator_public_dns {
 variable perftest_command {
   type = string
   default = ""
-}
-
-resource "terraform_data" "ensure_lavinmq" {
-  connection {
-    type  = "ssh"
-    user  = "ubuntu"
-    host  = var.broker_public_dns
-    agent = true
-  }
-
-  provisioner "file" {
-    source      = "../../scripts/ensure_lavinmq.sh"
-    destination = "/tmp/ensure_lavinmq.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/ensure_lavinmq.sh",
-      "/tmp/ensure_lavinmq.sh",
-    ]
-  }
 }
 
 resource "terraform_data" "ensure_lavinmqperf" {
@@ -55,8 +30,6 @@ resource "terraform_data" "ensure_lavinmqperf" {
       "/tmp/ensure_lavinmqperf.sh",
     ]
   }
-
-  depends_on = [terraform_data.ensure_lavinmq]
 }
 
 resource "terraform_data" "perftest" {
