@@ -27,3 +27,7 @@ output "public_dns" {
 output "private_ip" {
   value = module.instance.private_ip
 }
+
+output "user_ids" {
+  value = module.install_lavinmq.user_ids
+}

@@ -71,4 +71,6 @@ module "performance_test" {
   broker_private_ip         = module.broker.private_ip
   load_generator_public_dns = module.load_generator[count.index].public_dns
   perftest_command          = var.perftest_command
+
+  depends_on = [module.broker.user_ids]
 }

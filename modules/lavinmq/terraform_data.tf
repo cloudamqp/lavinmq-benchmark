@@ -69,6 +69,10 @@ resource "terraform_data" "create_user" {
   depends_on = [ terraform_data.install_lavinmq ]
 }
 
+output "user_ids" {
+  value = [for user in terraform_data.create_user : user.id]
+}
+
 resource "terraform_data" "stop_lavinmq" {
   count = var.stop_lavinmq == false ? 0 : 1
 
