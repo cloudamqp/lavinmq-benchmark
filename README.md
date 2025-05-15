@@ -40,8 +40,8 @@ dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1
 To re-run the same test, replace the terraform_data.perftest resource using the following command:
 
 ```console
-dotenv terraform apply -replace="module.performance_test[0].terraform_data.perftest" \
--var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16"
+dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16" \
+-replace="module.performance_test[0].terraform_data.perftest"
 ```
 
 ### 4. Run a different performance test
