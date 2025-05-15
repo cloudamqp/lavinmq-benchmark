@@ -1,74 +1,47 @@
-# Standalone AWS servers
+# AWS servers
+
+Modules designed to provision AWS resources required for running benchmarks.
 
 ## Environmental variables
 
-There is a template on which enviromental variables that are needed.
-`./env_template`
+A template file, `env_template.env`, is provided to define the necessary environment variables for
+running benchmarks with AWS resources.
 
 > [!NOTE]
-> For Terraform to read the variables used in the configuration. They need to be prefixed
-> with `TF_VAR_` and are case sensitive.
+> Terraform requires variables used in the configuration to be prefixed with `TF_VAR_`. These
+> variables are case-sensitive.
 
-## Run
+## Modules
 
-The performance test is done by lavinmqperf`. More information about how to use it can be
-found in the [documentation](https://lavinmq.com/documentation/lavinmqperf).
+Terraform modules for provisioning resources and data sources to set up the infrastructure. Both the
+broker and load generator servers are deployed within the same VPC to enable internal communication.
 
-### Initalize
+### AMI
 
-Change directory to any scenario (e.g. `./scenarios/generic_throughput`) and initialize the AWS
-provider and moudles with:
+This module retrieves the Amazon Machine Image (AMI) used to create EC2 instances. It supports
+customization of the server architecture and Ubuntu version.
 
-```console
-dotenv terraform init
-```
+### Broker
 
-### Create the setup and finish with performance test
+This module provisions and configures the broker server, including the installation of LavinMQ on an
+EC2 instance.
 
-The perfomance test command is invoked as a input variable called `perftest_command`
-and can be assigned when running `terraform apply`.
+### Instance
 
-```console
-dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16"
-```
+This module handles the creation of an EC2 instance in AWS, using the specified AMI and network
+configuration.
 
-### Re-run the same performance test
+### Load Generator
 
-To re-run the same test, use replace on the module with the `terraform_data.perftest` resource.
-This is the resource that invokes the command.
+This module sets up and configures the load generator server to simulate traffic for benchmarking
+purposes.
 
-```console
-dotenv terraform apply -replace="module.remote_execute.terraform_data.perftest" \
--var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16"
-```
+### Network
 
-### Run another performance test
+This module establishes the networking infrastructure, including subnets, security groups, and the
+VPC, for the broker and load generator servers.
 
-If any command parameters are changed. An automatic replace will be triggered of 
-`terraform_data.perftest` resource and a new performance test will start.
-Example: change running time from 120 to 60.
+### SSH
 
-```console
-dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 60 -x 1 -y 1 -s 16"
-```
-
-### Clean up
-
-To clean up and tear down all resources.
-
-```console
-dotenv terraform destroy
-```
-
-## Ensure scripts
-
-Two scripts added to ensure `LavinMQ` is running and `lavinmqperf` command can be found.
-All servers install `LavinMQ` in the cloud init phase. This can take time to finish
-before the perftest command is invoked. To ensure the new user exists and command can be used, these
-checks are necessary.
-
-## Logging
-
-Terraform support provider logging for more output than the is initial displayed in the terminal.
-This can be set as an environmental variable `TF_LOG_PROVIDER` and support the common severity levels.
-`[INFO, DEBUG, WARN, ERROR, TRACE]`.
+This module generates an SSH key pair and uploads it to the EC2 instances during provisioning.
+The key pair enables secure access to the instances via SSH.
