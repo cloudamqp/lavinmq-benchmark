@@ -45,18 +45,6 @@ resource "terraform_data" "install_lavinmq" {
     ]
   }
 
-  provisioner "file" {
-    source      = "../../scripts/ensure_lavinmq.sh"
-    destination = "/tmp/ensure_lavinmq.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "sudo chmod +x /tmp/ensure_lavinmq.sh",
-      "sudo /tmp/ensure_lavinmq.sh",
-    ]
-  }
-
   depends_on = [ terraform_data.install_crystal ]
 }
 

@@ -11,27 +11,6 @@ variable perftest_command {
   default = ""
 }
 
-resource "terraform_data" "ensure_lavinmqperf" {
-  connection {
-    type  = "ssh"
-    user  = "ubuntu"
-    host  = var.load_generator_public_dns
-    agent = true
-  }
-
-  provisioner "file" {
-    source      = "../../scripts/ensure_lavinmqperf.sh"
-    destination = "/tmp/ensure_lavinmqperf.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/ensure_lavinmqperf.sh",
-      "/tmp/ensure_lavinmqperf.sh",
-    ]
-  }
-}
-
 resource "terraform_data" "perftest" {
   connection {
     type  = "ssh"
@@ -52,6 +31,4 @@ resource "terraform_data" "perftest" {
       )
     ]
   }
-
-  depends_on = [terraform_data.ensure_lavinmqperf]
 }
