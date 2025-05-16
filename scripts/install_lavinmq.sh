@@ -7,7 +7,7 @@ echo "deb [signed-by=/usr/share/keyrings/lavinmq.gpg] https://packagecloud.io/cl
 apt-get update -qq > /dev/null
 
 if [ -n "${LAVINMQ_VERSION}" ]
-then apt-get install "lavinmq=${LAVINMQ_VERSION}-1" -y --allow-change-held-packages -qq > /dev/null
+then apt-get install "lavinmq=${LAVINMQ_VERSION}-1" -y --allow-change-held-packages -qq --allow-downgrades > /dev/null
 else apt-get install lavinmq -y --allow-change-held-packages -qq > /dev/null
 fi
 
