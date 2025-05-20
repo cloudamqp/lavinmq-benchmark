@@ -10,7 +10,7 @@ Load generator -> AMQP-URL (broker private IP) -> Broker
 
 ## AWS instance types
 
-Benchmark result for AWS instane types with  LavinMQ version v2.3.0.
+Benchmark result for AWS instance types with  LavinMQ version v2.3.0.
 
 Command:
 
@@ -42,7 +42,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s 16
 | r7g.2xlarge      | 573,723 msgs/s    | 573,467 msgs/s    | 8 vCPU, 64 GiB RAM    |
 | x2iezn.2xlarge   | 593,247 msgs/s    | 592,909 msgs/s    | 8 vCPU, 256 GiB RAM   |
 
-### CPU omptimized
+### CPU optimized
 
 - c8g: Uses ARM based AWS Graviton4 and are ideal for compute-intensive workloads, such as high
        performance computing.
@@ -54,7 +54,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s 16
 | c8g.large        | 788,907 msgs/s    | 788,540 msgs/s    | 2 vCPU, 4 GiB RAM     |
 | c7a.large        | 511,524 msgs/s    | 511,183 msgs/s    | 2 vCPU, 4 GiB RAM     |
 
-### Storage omptimized
+### Storage optimized
 
 - i7i, i7ie: Uses AMD based 5th generation Intel Xeon Scalable and are optimized for storage-intensive
              workloads that require high-speed access to data residing on local NVMe storage.
@@ -67,7 +67,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s 16
 | i7ie.large       | 897,870 msgs/s    | 897,550 msgs/s    | 2 vCPU, 16 GiB RAM    |
 | i8g.large        | 795,584 msgs/s    | 795,198 msgs/s    | 2 vCPU, 16 GiB RAM    |
 
-### Memory bound and data intesive
+### Memory bound and data intensive
 
 - hpc6id: Uses AMD based 3rd Generation Intel Xeon Scalable processors, offer cost-effective price
           performance for memory-bound and data-intensive high performance computing workloads.
