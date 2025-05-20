@@ -12,7 +12,7 @@ predefined scenarios. Follow the steps below to set up and run the benchmarks.
 
 ## LavinMQ performance tester
 
-The performance test is done by lavinmqperf`. More information about how to use it can be
+The performance test is done using `lavinmqperf`. More information about how to use it can be
 found in the [documentation](https://lavinmq.com/documentation/lavinmqperf).
 
 ## Steps to Run the Benchmark
