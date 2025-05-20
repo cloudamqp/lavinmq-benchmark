@@ -16,7 +16,7 @@ You can provide variables using either a standard Terraform variable file or by 
 
 The AWS provider requires credentials for access. Set these as environment variables:
 
-```console
+```shell
 export AWS_ACCESS_KEY=***
 export AWS_SECRET_KEY=***
 ```
@@ -54,19 +54,19 @@ initialize the Terraform AWS provider and modules:
 
 Automatically read variables from `terraform.auto.tfvars` file.
 
-```console
+```shell
 terraform init
 ```
 
 Read variables form `terraform.tfvars` file.
 
-```console
+```shell
 terraform init -var="terraform.tfvars"
 ```
 
 Read variables from `.env` file
 
-```console
+```shell
 dotenv terraform init
 ```
 
@@ -77,7 +77,7 @@ Rest of the examples will be presented using `dotenv` to load the variables requ
 Run the performance test by specifying the perftest_command variable when applying the Terraform
 configuration:
 
-```console
+```shell
 dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16"
 ```
 
@@ -85,7 +85,7 @@ dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1
 
 To re-run the same test, replace the terraform_data.perftest resource using the following command:
 
-```console
+```shell
 dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1 -y 1 -s 16" \
 -replace="module.performance_test[0].terraform_data.perftest"
 ```
@@ -95,7 +95,7 @@ dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 120 -x 1
 If you want to modify the test parameters (e.g., change the duration from 120 seconds to 60 seconds),
 Terraform will automatically replace the terraform_data.perftest resource and start a new test:
 
-```console
+```shell
 dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 60 -x 1 -y 1 -s 16"
 ```
 
@@ -103,7 +103,7 @@ dotenv terraform apply -var="perftest_command=lavinmqperf throughput -z 60 -x 1 
 
 To tear down all resources and clean up the environment, run:
 
-```console
+```shell
 dotenv terraform destroy
 ```
 
@@ -113,7 +113,7 @@ Terraform supports provider logging for detailed output. You can enable logging 
 `TF_LOG_PROVIDER` environment variable to one of the following severity levels:
 [INFO, DEBUG, WARN, ERROR, TRACE].
 
-```console
+```shell
 export TF_LOG_PROVIDER=DEBUG
 ```
 
