@@ -5,10 +5,40 @@ predefined scenarios. Follow the steps below to set up and run the benchmarks.
 
 ## Prerequisites
 
-1. Ensure you have the required environment variables defined. Use the provided template file
-  `./modules/provider/aws/env_template.env` to configure them.
-2. Remember that Terraform requires variables to be prefixed with `TF_VAR_` and they are
-  case-sensitive.
+1. Terraform: Install Terraform (>= 1.3.0). Follow [Terraform's installation guide](https://developer.hashicorp.com/terraform/install).
+
+## Variables
+
+You can provide variables using either a standard Terraform variable file or by loading them from a
+`.env` file with a dotenv loader.
+
+### AWS provider
+
+The AWS provider requires credentials for access. Set these as environment variables:
+
+```console
+export AWS_ACCESS_KEY=***
+export AWS_SECRET_KEY=***
+```
+
+### Using .tfvars
+
+Terraform can automatically load variables from files as described in the [Terraform documentation](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files).
+
+1. Define the required variables using the template at
+   `./modules/provider/aws/template/terraform_tfvars.txt`.
+2. Create a `terraform.tfvars` or `terraform.auto.tfvars` file in your scenario directory before
+   running Terraform.
+
+### Using dotenv
+
+You can use a dotenv loader (for example, for Golang, Ruby, Node.js, etc.) to read variables from a
+`.env` file and set them as environment variables.
+
+1. Define the required environment variables using the template at
+   `./modules/provider/aws/variable_template/env.txt`.
+2. When loading these variables, ensure each is prefixed with `TF_VAR_` and note that variable names
+   are case-sensitive for Terraform.
 
 ## LavinMQ performance tester
 
@@ -22,9 +52,25 @@ found in the [documentation](https://lavinmq.com/documentation/lavinmqperf).
 Navigate to the desired scenario directory (e.g., `./scenarios/aws/lavinmq_throughput`) and
 initialize the Terraform AWS provider and modules:
 
+Automatically read variables from `terraform.auto.tfvars` file.
+
+```console
+terraform init
+```
+
+Read variables form `terraform.tfvars` file.
+
+```console
+terraform init -var="terraform.tfvars"
+```
+
+Read variables from `.env` file
+
 ```console
 dotenv terraform init
 ```
+
+Rest of the examples will be presented using dotenv to load the variables required.
 
 ### 2. Create the setup and finish with performance test
 

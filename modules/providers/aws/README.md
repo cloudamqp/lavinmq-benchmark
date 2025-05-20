@@ -2,14 +2,11 @@
 
 Modules designed to provision AWS resources required for running benchmarks.
 
-## Environmental variables
+## Variables
 
-A template file, `env_template.env`, is provided to define the necessary environment variables for
-running benchmarks with AWS resources.
-
-> [!NOTE]
-> Terraform requires variables used in the configuration to be prefixed with `TF_VAR_`. These
-> variables are case-sensitive.
+Templates are provided to either create `terraform.tfvars` file or `.env` and can be found
+within the `variable_template` folder. One of them are required to be able to run the benchmark with
+AWS resources.
 
 ## Modules
 
