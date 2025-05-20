@@ -10,7 +10,7 @@ predefined scenarios. Follow the steps below to set up and run the benchmarks.
 ## Variables
 
 You can provide variables using either a standard Terraform variable file or by loading them from a
-`.env` file with a dotenv loader.
+`.env` file with [a dotenv loader](https://github.com/bkeepers/dotenv).
 
 ### AWS provider
 
@@ -21,7 +21,7 @@ export AWS_ACCESS_KEY=***
 export AWS_SECRET_KEY=***
 ```
 
-### Using .tfvars
+### Using `.tfvars` file
 
 Terraform can automatically load variables from files as described in the [Terraform documentation](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files).
 
@@ -70,7 +70,7 @@ Read variables from `.env` file
 dotenv terraform init
 ```
 
-Rest of the examples will be presented using dotenv to load the variables required.
+Rest of the examples will be presented using `dotenv` to load the variables required.
 
 ### 2. Create the setup and finish with performance test
 
