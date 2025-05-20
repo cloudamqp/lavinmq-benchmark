@@ -1,12 +1,12 @@
-# AWS region, example: us-east-1, us-east-1a
-aws_region="region-used"
-aws_availability_zone="availability_zone"
+# AWS region
+aws_region="us-east-1"
+aws_availability_zone="us-east-1a"
 
 # AMI arch, [arm64, amd64]
-ami_arch="arch"
+ami_arch="arm64"
 
 # Ubuntu Code name [jammy, noble]
-ubuntu_code_name="code-name"
+ubuntu_code_name="noble"
 
 # Information set to AWS resources
 tag_created_by="user-creating-the-resources"
@@ -18,8 +18,7 @@ public_ssh_key="path-to-public-key"
 ssh_key_name="name-your-key"
 
 # LavinMQ version, don't set to get latest version.
-# Example: "2.0.0"
-lavinmq_version="lavinmq-version"
+lavinmq_version="2.3.0"
 
 # Benchmark servers
 ## Broker server
