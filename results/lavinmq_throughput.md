@@ -14,7 +14,7 @@ Benchmark result for AWS instance types with  LavinMQ version v2.3.0.
 
 Command:
 
-```console
+```shell
 lavinmqperf throughput -z 120 -x 1 -y 1 -s 16
 ```
 

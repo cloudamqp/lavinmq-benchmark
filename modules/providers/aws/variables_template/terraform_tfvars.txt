@@ -1,0 +1,36 @@
+# AWS region
+aws_region="us-east-1"
+aws_availability_zone="us-east-1a"
+
+# AMI arch, [arm64, amd64]
+ami_arch="arm64"
+
+# Ubuntu Code name [jammy, noble]
+ubuntu_code_name="noble"
+
+# Information set to AWS resources
+tag_created_by="user-creating-the-resources"
+tag_name="name-of-network-resources"
+
+# SSH key access, path to your public key and name the key.
+# Example: "~/.ssh/id_ed25519.pub"
+public_ssh_key="path-to-public-key"
+ssh_key_name="name-your-key"
+
+# LavinMQ version, don't set to get latest version.
+lavinmq_version="2.3.0"
+
+# Benchmark servers
+## Broker server
+broker_instance_type="instance-type"
+broker_name="name-of-the-broker-server"
+### Root disk volume size, don't set to use default 8 GiB size.
+broker_volume_size=10
+
+## Load generator server
+### Number of load generator servers, default set to 1.
+load_generator_count=1
+load_generator_instance_type="instance-type"
+load_generator_name="name-of-the-load-generator-server"
+### Root disk volume size, don't set to use default 8 GiB size.
+load_generator_volume_size=10
