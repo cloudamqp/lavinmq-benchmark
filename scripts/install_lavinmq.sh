@@ -1,9 +1,17 @@
 #!/bin/bash -xe
 
 apt-get update -qq > /dev/null
-curl -fsSL https://packagecloud.io/cloudamqp/lavinmq/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/lavinmq.gpg > /dev/null
+
+# Use lavinmq-prerelease repository for release candidates
+if [[ -n "${LAVINMQ_VERSION}" && "${LAVINMQ_VERSION}" == *"-rc"* ]]; then
+    REPO_NAME="lavinmq-prerelease"
+else
+    REPO_NAME="lavinmq"
+fi
+
+curl -fsSL https://packagecloud.io/cloudamqp/${REPO_NAME}/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/lavinmq.gpg > /dev/null
 . /etc/os-release
-echo "deb [signed-by=/usr/share/keyrings/lavinmq.gpg] https://packagecloud.io/cloudamqp/lavinmq/$ID $VERSION_CODENAME main" | sudo tee /etc/apt/sources.list.d/lavinmq.list > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/lavinmq.gpg] https://packagecloud.io/cloudamqp/${REPO_NAME}/$ID $VERSION_CODENAME main" | sudo tee /etc/apt/sources.list.d/lavinmq.list > /dev/null
 apt-get update -qq > /dev/null
 
 if [ -n "${LAVINMQ_VERSION}" ]
