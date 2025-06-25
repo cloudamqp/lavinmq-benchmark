@@ -9,6 +9,13 @@ else
     REPO_NAME="lavinmq"
 fi
 
+mkdir -p /var/lib/lavinmq
+# Check if nvme1n1 SSD data disk is present
+if lsblk | grep -q nvme1n1; then
+  mkfs -t xfs /dev/nvme1n1
+  mount /dev/nvme1n1 /var/lib/lavinmq
+fi
+
 curl -fsSL https://packagecloud.io/cloudamqp/${REPO_NAME}/gpgkey | gpg --dearmor | sudo tee /usr/share/keyrings/lavinmq.gpg > /dev/null
 . /etc/os-release
 echo "deb [signed-by=/usr/share/keyrings/lavinmq.gpg] https://packagecloud.io/cloudamqp/${REPO_NAME}/$ID $VERSION_CODENAME main" | sudo tee /etc/apt/sources.list.d/lavinmq.list > /dev/null
