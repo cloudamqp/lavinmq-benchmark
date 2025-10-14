@@ -44,7 +44,7 @@ resource "aws_route_table_association" "rt-a" {
   route_table_id = aws_vpc.vpc.main_route_table_id
 }
 
-resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
+resource "aws_vpc_security_group_ingress_rule" "ssh_traffic" {
   security_group_id = aws_vpc.vpc.default_security_group_id
 
   cidr_ipv4   = "0.0.0.0/0"
@@ -52,8 +52,19 @@ resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
   from_port   = 22
   to_port     = 22
 
-  # Use to allow incoming traffic
-  # ip_protocol = "-1"
+  tags = {
+    Name      = var.tag_name
+    CreatedBy = var.tag_created_by
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "lavinmq_management" {
+  security_group_id = aws_vpc.vpc.default_security_group_id
+
+  cidr_ipv4   = "0.0.0.0/0"
+  ip_protocol = "tcp"
+  from_port   = 15672
+  to_port     = 15672
 
   tags = {
     Name      = var.tag_name
