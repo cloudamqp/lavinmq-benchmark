@@ -41,3 +41,4 @@ terraform.rc
 
 # Ignore environment file
 scenarios/aws/.env
+scenarios/aws/*/.env
