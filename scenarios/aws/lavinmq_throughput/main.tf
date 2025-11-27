@@ -33,54 +33,65 @@ module "ami" {
 
   ami_arch         = var.ami_arch
   ubuntu_code_name = var.ubuntu_code_name
+  os_type          = var.os_type
+  freebsd_version  = var.freebsd_version
 }
 
 module "broker" {
   source = "../../../modules/providers/aws/broker"
 
   # Create AWS instance
-  ami_id              = module.ami.ami_id
-  instance_type       = var.broker_instance_type
-  ssh_key_name        = var.ssh_key_name
-  subnet_id           = module.network.subnet_identifier
-  tag_created_by      = var.tag_created_by
-  tag_name            = var.broker_name
-  volume_size         = var.broker_volume_size
+  ami_id         = module.ami.ami_id
+  instance_type  = var.broker_instance_type
+  ssh_key_name   = var.ssh_key_name
+  subnet_id      = module.network.subnet_identifier
+  tag_created_by = var.tag_created_by
+  tag_name       = var.broker_name
+  volume_size    = var.broker_volume_size
 
   # Install lavinmq
   install_crystal     = true
   lavinmq_version     = var.lavinmq_version
   install_lavinmq     = true
   create_lavinmq_user = true
+
+  # OS-specific settings
+  ssh_user = module.ami.ssh_user
+  os_type  = module.ami.os_type
 }
 
 module "load_generator" {
-  count = var.load_generator_count
+  count  = var.load_generator_count
   source = "../../../modules/providers/aws/load_generator"
 
   # Create AWS instance
-  ami_id            = module.ami.ami_id
-  instance_type     = var.load_generator_instance_type
-  ssh_key_name      = var.ssh_key_name
-  subnet_id         = module.network.subnet_identifier
-  tag_name          = format("%s_%s", var.load_generator_name, count.index)
-  tag_created_by    = var.tag_created_by
-  volume_size       = var.load_generator_volume_size
-  
+  ami_id         = module.ami.ami_id
+  instance_type  = var.load_generator_instance_type
+  ssh_key_name   = var.ssh_key_name
+  subnet_id      = module.network.subnet_identifier
+  tag_name       = format("%s_%s", var.load_generator_name, count.index)
+  tag_created_by = var.tag_created_by
+  volume_size    = var.load_generator_volume_size
+
   # Install lavinmq
   install_crystal = true
   lavinmq_version = var.lavinmq_version
   install_lavinmq = true
   stop_lavinmq    = true
+
+  # OS-specific settings
+  ssh_user = module.ami.ssh_user
+  os_type  = module.ami.os_type
 }
 
 module "performance_test" {
-  count = var.load_generator_count
+  count  = var.load_generator_count
   source = "../../../modules/perftest"
 
   broker_private_ip         = module.broker.private_ip
   load_generator_public_dns = module.load_generator[count.index].public_dns
   perftest_command          = var.perftest_command
+  ssh_user                  = module.ami.ssh_user
 
   depends_on = [module.broker.user_ids]
 }

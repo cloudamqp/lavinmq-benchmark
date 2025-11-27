@@ -18,6 +18,8 @@ module "install_lavinmq" {
   install_crystal     = var.install_crystal
   install_lavinmq     = var.install_lavinmq
   create_lavinmq_user = var.create_lavinmq_user
+  ssh_user            = var.ssh_user
+  os_type             = var.os_type
 }
 
 output "public_dns" {
