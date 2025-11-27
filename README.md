@@ -21,6 +21,18 @@ export AWS_ACCESS_KEY=***
 export AWS_SECRET_KEY=***
 ```
 
+### Operating system
+
+By default this will run the benchmarks on Ubuntu but there is also support to run it on FreeBSD.
+
+Here are the additional variables needed to make that happen
+
+```
+os_type         = "freebsd"
+freebsd_version = "14.2"    # optional, defaults to 14.2
+ami_arch        = "amd64"   # or "arm64" 
+```
+
 ### Using `.tfvars` file
 
 Terraform can automatically load variables from files as described in the [Terraform documentation](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files).

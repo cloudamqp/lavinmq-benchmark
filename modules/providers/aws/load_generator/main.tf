@@ -19,6 +19,8 @@ module "install_lavinmq" {
   install_lavinmq     = var.install_lavinmq
   create_lavinmq_user = var.create_lavinmq_user
   stop_lavinmq        = var.stop_lavinmq
+  ssh_user            = var.ssh_user
+  os_type             = var.os_type
 }
 
 output "public_dns" {
