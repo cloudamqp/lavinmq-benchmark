@@ -1,15 +1,21 @@
+locals {
+  crystal_script = var.os_type == "freebsd" ? "../../../scripts/install_crystal_freebsd.sh" : "../../../scripts/install_crystal.sh"
+  lavinmq_script = var.os_type == "freebsd" ? "../../../scripts/install_lavinmq_freebsd.sh" : "../../../scripts/install_lavinmq.sh"
+  stop_command   = var.os_type == "freebsd" ? "sudo service lavinmq stop" : "sudo systemctl stop lavinmq.service"
+}
+
 resource "terraform_data" "install_crystal" {
   count = var.install_crystal == false ? 0 : 1
 
   connection {
     type  = "ssh"
-    user  = "ubuntu"
+    user  = var.ssh_user
     host  = var.public_dns
     agent = true
   }
 
   provisioner "file" {
-    source      = "../../../scripts/install_crystal.sh"
+    source      = local.crystal_script
     destination = "/tmp/install_crystal.sh"
   }
 
@@ -26,13 +32,13 @@ resource "terraform_data" "install_lavinmq" {
 
   connection {
     type  = "ssh"
-    user  = "ubuntu"
+    user  = var.ssh_user
     host  = var.public_dns
     agent = true
   }
 
   provisioner "file" {
-    source      = "../../../scripts/install_lavinmq.sh"
+    source      = local.lavinmq_script
     destination = "/tmp/install_lavinmq.sh"
   }
 
@@ -45,7 +51,7 @@ resource "terraform_data" "install_lavinmq" {
     ]
   }
 
-  depends_on = [ terraform_data.install_crystal ]
+  depends_on = [terraform_data.install_crystal]
 }
 
 resource "terraform_data" "create_user" {
@@ -53,7 +59,7 @@ resource "terraform_data" "create_user" {
 
   connection {
     type  = "ssh"
-    user  = "ubuntu"
+    user  = var.ssh_user
     host  = var.public_dns
     agent = true
   }
@@ -66,7 +72,7 @@ resource "terraform_data" "create_user" {
     ]
   }
 
-  depends_on = [ terraform_data.install_lavinmq ]
+  depends_on = [terraform_data.install_lavinmq]
 }
 
 output "user_ids" {
@@ -78,16 +84,16 @@ resource "terraform_data" "stop_lavinmq" {
 
   connection {
     type  = "ssh"
-    user  = "ubuntu"
+    user  = var.ssh_user
     host  = var.public_dns
     agent = true
   }
 
   provisioner "remote-exec" {
     inline = [
-      "sudo systemctl stop lavinmq.service"
+      local.stop_command
     ]
   }
 
-  depends_on = [ terraform_data.install_lavinmq ]
+  depends_on = [terraform_data.install_lavinmq]
 }

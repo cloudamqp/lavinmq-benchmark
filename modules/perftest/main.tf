@@ -1,20 +1,25 @@
-variable broker_private_ip {
+variable "broker_private_ip" {
   type = string
 }
 
-variable load_generator_public_dns {
+variable "load_generator_public_dns" {
   type = string
 }
 
-variable perftest_command {
-  type = string
+variable "perftest_command" {
+  type    = string
   default = ""
+}
+
+variable "ssh_user" {
+  type    = string
+  default = "ubuntu"
 }
 
 resource "terraform_data" "perftest" {
   connection {
     type  = "ssh"
-    user  = "ubuntu"
+    user  = var.ssh_user
     host  = var.load_generator_public_dns
     agent = true
   }
