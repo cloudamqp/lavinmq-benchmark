@@ -101,7 +101,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s <size> --measure-latency
 | 512          | 597,851           | 597,762           | 0.85 | 16.64  | 18.39 | 41.94 | 47.73 |
 | 1024         | 420,266           | 420,223           | 1.27 | 12.29  | 13.71 | 23.41 | 32.80 |
 
-**c7a.large** - 2 vCPU, 4 GiB RAM (AMD 4th gen EPYC)
+**c7a.large** - 2 vCPU, 4 GiB RAM (AMD-based 4th gen EPYC)
 
 | Message Size | Avg. Publish Rate | Avg. Consume Rate | Min  | Median | P75   | P95       | P99       |
 | -----------: | ----------------: | ----------------: | ---: | -----: | ----: | --------: | --------: |
@@ -115,7 +115,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s <size> --measure-latency
 
 ### Storage Optimized
 
-**i7i.large** - 2 vCPU, 16 GiB RAM (Intel Xeon 5th gen, local NVMe)
+**i7i.large** - 2 vCPU, 16 GiB RAM (AMD-based Intel Xeon 5th gen, local NVMe)
 
 | Message Size | Avg. Publish Rate | Avg. Consume Rate | Min  | Median | P75       | P95       | P99       |
 | -----------: | ----------------: | ----------------: | ---: | -----: | --------: | --------: | --------: |
@@ -137,7 +137,7 @@ _Note: Data for message sizes 64, 256, 512, and 1024 bytes not available._
 
 ### High Single-Threaded Performance
 
-**z1d.large** - 2 vCPU, 16 GiB RAM (Intel Xeon Scalable)
+**z1d.large** - 2 vCPU, 16 GiB RAM (AMD-based Intel Xeon Scalable)
 
 | Message Size | Avg. Publish Rate | Avg. Consume Rate | Min  | Median    | P75        | P95        | P99        |
 | -----------: | ----------------: | ----------------: | ---: | --------: | ---------: | ---------: | ---------: |
