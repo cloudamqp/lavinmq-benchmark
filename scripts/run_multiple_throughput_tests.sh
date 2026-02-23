@@ -54,7 +54,7 @@ echo "=========================================="
 echo ""
 
 # Initialize CSV temp file
-echo "Size,Pub_Rate,Con_Rate" > "$TEMP_CSV"
+echo "Size,Pub_Rate,Con_Rate,Pub_BW,Con_BW" > "$TEMP_CSV"
 
 # Convert comma-separated sizes to array
 IFS=',' read -ra SIZE_ARRAY <<< "$SIZES"
@@ -96,11 +96,15 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
     exit 1
   fi
   
-  echo "Results: Publish=$PUB_RATE msgs/s, Consume=$CON_RATE msgs/s"
+  # Calculate bandwidth in MiB/s: (size_bytes * msgs_per_sec) / (1024 * 1024)
+  PUB_BW=$(echo "scale=2; ($SIZE * $PUB_RATE) / (1024 * 1024)" | bc)
+  CON_BW=$(echo "scale=2; ($SIZE * $CON_RATE) / (1024 * 1024)" | bc)
+
+  echo "Results: Publish=$PUB_RATE msgs/s ($PUB_BW MiB/s), Consume=$CON_RATE msgs/s ($CON_BW MiB/s)"
   echo ""
   
   # Append to CSV
-  echo "$SIZE,$PUB_RATE,$CON_RATE" >> "$TEMP_CSV"
+  echo "$SIZE,$PUB_RATE,$CON_RATE,$PUB_BW,$CON_BW" >> "$TEMP_CSV"
 done
 
 echo "=========================================="
@@ -120,14 +124,14 @@ echo "Generating markdown summary..."
   echo ""
   echo "## Results"
   echo ""
-  echo "| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) |"
-  echo "|-------------:|------------------------:|------------------------:|"
+  echo "| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) | Pub. Bandwidth (MiB/s) | Con. Bandwidth (MiB/s) |"
+  echo "|-------------:|------------------------:|------------------------:|-----------------------:|-----------------------:|"
   
   # Read CSV and format as markdown table (skip header)
-  tail -n +2 "$TEMP_CSV" | while IFS=',' read -r size pub_rate con_rate; do
+  tail -n +2 "$TEMP_CSV" | while IFS=',' read -r size pub_rate con_rate pub_bw con_bw; do
     formatted_pub=$(format_number "$pub_rate")
     formatted_con=$(format_number "$con_rate")
-    printf "| %12s | %23s | %23s |\n" "$size" "$formatted_pub" "$formatted_con"
+    printf "| %12s | %23s | %23s | %22s | %22s |\n" "$size" "$formatted_pub" "$formatted_con" "$pub_bw" "$con_bw"
   done
   
   echo ""
