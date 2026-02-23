@@ -102,8 +102,8 @@ Or with explicit variables:
 terraform apply \
   -var="aws_region=us-east-1" \
   -var="aws_availability_zone=us-east-1a" \
-  -var="broker_instance_type=c7g.2xlarge" \
-  -var="load_generator_instance_type=c7g.2xlarge" \
+  -var="broker_instance_type=c8g.large" \
+  -var="load_generator_instance_type=c8g.large" \
   -var="ssh_key_name=my-keypair" \
   -var="public_ssh_key=~/.ssh/id_rsa.pub"
 ```
@@ -158,7 +158,7 @@ The generated markdown file will look like:
 # LavinMQ Throughput Test Results
 
 Test Date: 2026-02-23 14:30:00 UTC
-Broker: 172.16.10.123
+Broker Instance Type: c8g.large
 LavinMQ Version: 2.5.0
 
 ## Results
@@ -251,10 +251,10 @@ It can be run manually on the load generator for additional tests:
 
 ```bash
 ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns>
-./run_multiple_throughput_tests.sh <broker-private-ip> [sizes] [duration]
+./run_multiple_throughput_tests.sh <broker-private-ip> [sizes] [duration] [broker_instance_type]
 
 # Example:
-./run_multiple_throughput_tests.sh 172.16.10.5 16,64,256 60
+./run_multiple_throughput_tests.sh 172.16.10.5 16,64,256 60 c8g.large
 ```
 
 ## Re-running Tests

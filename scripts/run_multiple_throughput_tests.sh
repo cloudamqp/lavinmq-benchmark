@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to run multiple throughput tests with different message sizes
-# Usage: ./run_multiple_throughput_tests.sh <broker_ip> [size1,size2,size3,...] [duration]
+# Usage: ./run_multiple_throughput_tests.sh <broker_ip> [size1,size2,size3,...] [duration] [broker_instance_type]
 
 set -e  # Exit on error
 
@@ -16,13 +16,14 @@ format_number() {
 BROKER_IP="${1}"
 SIZES="${2:-16,64,256,512,1024}"  # Default sizes if not provided
 DURATION="${3:-120}"  # Default duration 120 seconds if not provided
+BROKER_INSTANCE_TYPE="${4:-unknown}"  # Broker instance type for reporting
 OUTPUT_FILE="/home/ubuntu/throughput_results.md"
 TEMP_CSV="/tmp/throughput_results.csv"
 QUEUE_NAME="perf-test"
 
 if [ -z "$BROKER_IP" ]; then
   echo "Error: Broker IP not provided"
-  echo "Usage: $0 <broker_ip> [size1,size2,size3,...] [duration]"
+  echo "Usage: $0 <broker_ip> [size1,size2,size3,...] [duration] [broker_instance_type]"
   exit 1
 fi
 
@@ -44,7 +45,8 @@ echo "=========================================="
 echo "Multiple Throughput Test Runner"
 echo "=========================================="
 echo "Broker IP: $BROKER_IP"
-echo "Broker LavinMQ Version: $LAVINMQ_VERSION"
+echo "Broker Instance Type: $BROKER_INSTANCE_TYPE"
+echo "LavinMQ Version: $LAVINMQ_VERSION"
 echo "Message Sizes: $SIZES"
 echo "Test Duration: $DURATION seconds"
 echo "Output File: $OUTPUT_FILE"
@@ -113,8 +115,8 @@ echo "Generating markdown summary..."
   echo "# LavinMQ Throughput Test Results"
   echo ""
   echo "Test Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-  echo "Broker: $BROKER_IP"
-  echo "Broker LavinMQ Version: $LAVINMQ_VERSION"
+  echo "Broker Instance Type: $BROKER_INSTANCE_TYPE"
+  echo "LavinMQ Version: $LAVINMQ_VERSION"
   echo ""
   echo "## Results"
   echo ""
