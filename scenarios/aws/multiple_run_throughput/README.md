@@ -43,12 +43,6 @@ AWS_SECRET_KEY=***
 TF_VAR_aws_region="us-east-1"
 TF_VAR_aws_availability_zone="us-east-1a"
 
-# AMI arch [arm64, amd64]
-TF_VAR_ami_arch="arm64"
-
-# Ubuntu Code name [jammy, noble]
-TF_VAR_ubuntu_code_name="noble"
-
 # SSH key access, path to your public key and name the key.
 TF_VAR_public_ssh_key="~/.ssh/id_ed25519.pub"
 TF_VAR_ssh_key_name="lavinmq-benchmark"
@@ -57,17 +51,12 @@ TF_VAR_ssh_key_name="lavinmq-benchmark"
 TF_VAR_tag_created_by="test@benchmark"
 TF_VAR_tag_name="lavinmq-benchmark"
 
-TF_VAR_lavinmq_version="2.6.0"
-
 # Benchmark servers
 # Broker server
-# TF_VAR_broker_lavinmq_version="2.5.1"
 TF_VAR_broker_instance_type="c8g.large"
 TF_VAR_broker_name="Benchmark-broker"
 
-
 # Load generator server
-# TF_VAR_load_generator_lavinmq_version="2.6.0"
 TF_VAR_load_generator_count=1
 TF_VAR_load_generator_instance_type="c8g.large"
 TF_VAR_load_generator_name="Benchmark-loadgen"
