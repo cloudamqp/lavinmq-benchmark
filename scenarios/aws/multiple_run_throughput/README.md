@@ -152,7 +152,7 @@ scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts u
 
 ## Example Output
 
-The generated markdown file will look like:
+The generated markdown file will look like this (example results):
 
 ```markdown
 # LavinMQ Throughput Test Results
@@ -163,13 +163,13 @@ LavinMQ Version: 2.5.0
 
 ## Results
 
-| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) |
-|-------------:|------------------------:|------------------------:|
-|           16 |               1,234,567 |               1,230,123 |
-|           64 |               1,100,000 |               1,098,765 |
-|          256 |                 950,000 |                 948,500 |
-|          512 |                 800,000 |                 798,900 |
-|         1024 |                 650,000 |                 649,000 |
+| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) | Pub. Bandwidth (MiB/s) | Con. Bandwidth (MiB/s) |
+|-------------:|------------------------:|------------------------:|-----------------------:|-----------------------:|
+|           16 |               1,234,567 |               1,230,123 |                  18.86 |                  18.79 |
+|           64 |               1,100,000 |               1,098,765 |                  67.14 |                  67.06 |
+|          256 |                 950,000 |                 948,500 |                 232.01 |                 231.65 |
+|          512 |                 800,000 |                 798,900 |                 390.62 |                 389.78 |
+|         1024 |                 650,000 |                 649,000 |                 634.76 |                 633.78 |
 
 ## Test Configuration
 
@@ -179,6 +179,8 @@ LavinMQ Version: 2.5.0
 - Message sizes: 16,64,256,512,1024 bytes
 - Queue: perf-test
 ```
+
+**Note:** Actual test results are stored at `/home/ubuntu/throughput_results.md` on the load generator instance. Use the provided SSH or SCP commands from Terraform outputs to view or download them.
 
 ## Test Details
 
@@ -259,17 +261,53 @@ ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts u
 
 ## Re-running Tests
 
-To re-run tests with the same infrastructure:
+### Option 1: Taint the Test Resource (Recommended)
+
+Force Terraform to re-run just the test execution without destroying/recreating instances:
 
 ```bash
-# Change test parameters in .env, then:
-dotenv terraform apply
+# Mark the test resource for re-execution
+terraform taint 'terraform_data.multiple_throughput_tests'
 
-# Terraform will detect the change and re-run only the tests
+# Apply to re-run tests
+dotenv terraform apply
 ```
 
-To force re-run without changing parameters:
+This will only re-execute the test script without touching the broker or load generator instances.
+
+### Option 2: Use -replace Flag
+
+Directly replace the test resource in one command:
 
 ```bash
-terraform apply -replace="terraform_data.multiple_throughput_tests"
+dotenv terraform apply -replace='terraform_data.multiple_throughput_tests'
+```
+
+### Option 3: Change Test Parameters
+
+Modify test configuration to trigger automatic re-run:
+
+```bash
+# Change message sizes
+dotenv terraform apply -var='message_sizes=[16,64,256]'
+
+# Or change test duration
+dotenv terraform apply -var="test_duration=60"
+```
+
+Terraform will detect the change in `triggers_replace` and automatically re-run the tests.
+
+### Option 4: SSH Manually
+
+Run the script directly on the load generator:
+
+```bash
+# SSH into load generator
+ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns>
+
+# Execute the script
+./run_multiple_throughput_tests.sh <broker-private-ip> 16,64,256,512,1024 120 c8g.large
+
+# View results
+cat /home/ubuntu/throughput_results.md
 ```
