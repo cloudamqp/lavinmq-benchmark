@@ -81,7 +81,7 @@ lavinmqperf throughput -z 120 -x 1 -y 1 -s <size> -r <rate-limit> --measure-late
 |    200,000 |    0.64 |    5.74 |    6.50 |    8.42 |    12.39 |    96.72 |    96.72 |
 |    500,000 |    1.26 |    6.70 |    7.47 |   10.23 |    17.39 |   144.29 |   144.20 |
 
-## Message Size: 1024 bytes
+#### Message Size: 1024 bytes
 
 | Rate Limit |     Min |  Median |     P75 |     P95 |      P99 |  Pub. BW |  Con. BW |
 |-----------:|--------:|--------:|--------:|--------:|---------:|---------:|---------:|
