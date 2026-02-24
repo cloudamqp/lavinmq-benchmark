@@ -124,6 +124,10 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
     PUB_BW=$(echo "scale=2; ($SIZE * $PUB_RATE) / (1024 * 1024)" | bc)
     CON_BW=$(echo "scale=2; ($SIZE * $CON_RATE) / (1024 * 1024)" | bc)
     
+    # Ensure leading zero for values < 1.0
+    [[ "$PUB_BW" =~ ^\. ]] && PUB_BW="0$PUB_BW"
+    [[ "$CON_BW" =~ ^\. ]] && CON_BW="0$CON_BW"
+    
     echo "Results: Latency min/median/p75/p95/p99: ${MIN_MS}/${MEDIAN_MS}/${P75_MS}/${P95_MS}/${P99_MS} ms"
     echo "         Bandwidth: Publish=$PUB_BW MiB/s, Consume=$CON_BW MiB/s"
     echo ""
@@ -144,35 +148,7 @@ echo ""
 echo "Generating markdown summary..."
 
 {
-  echo "# LavinMQ Latency Test Results"
-  echo ""
-  echo "Test Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-  echo "Broker Instance Type: $BROKER_INSTANCE_TYPE"
-  echo "LavinMQ Version: $LAVINMQ_VERSION"
-  echo ""
-  
-  # Generate a table for each message size
-  for SIZE in "${SIZE_ARRAY[@]}"; do
-    SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
-    
-    echo "## Message Size: $SIZE bytes"
-    echo ""
-    echo "*Latency (min, median, p75, p95, p99) in milliseconds. Bandwidth (Pub. BW, Con. BW) in MiB/s.*"
-    echo ""
-    echo "| Rate Limit |    Min | Median |    P75 |    P95 |     P99 | Pub. BW | Con. BW |"
-    echo "|-----------:|-------:|-------:|-------:|-------:|--------:|--------:|--------:|"
-    
-    # Read CSV and format as markdown table (skip header)
-    tail -n +2 "$SIZE_CSV" | while IFS=',' read -r rate min_lat median_lat p75_lat p95_lat p99_lat pub_bw con_bw; do
-      formatted_rate=$(format_number "$rate")
-      printf "| %11s | %7s | %7s | %7s | %7s | %8s | %8s | %8s |\n" \
-        "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$pub_bw" "$con_bw"
-    done
-    
-    echo ""
-  done
-  
-  echo "## Test Configuration"
+  echo "# Test Configuration"
   echo ""
   echo "- Duration: $DURATION seconds (\`-z $DURATION\`)"
   echo "- Producers: 1 (\`-x 1\`)"
@@ -182,6 +158,37 @@ echo "Generating markdown summary..."
   echo "- Queue: $QUEUE_NAME"
   echo "- Latency measurement: Enabled (\`--measure-latency\`)"
   echo ""
+  echo "## Units"
+  echo ""
+  echo "- Rate limits: (msgs/s)"
+  echo "- Latency [min, median, P75, P95, P99]: (ms)"
+  echo "- Publish/consume bandwidth: (MiB/s)"
+  echo ""
+  echo "# $BROKER_INSTANCE_TYPE"
+  echo ""
+  
+  # Generate a table for each message size
+  for SIZE in "${SIZE_ARRAY[@]}"; do
+    SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
+    
+    echo "## Message Size: $SIZE bytes"
+    echo ""
+    echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 |  Pub. BW |  Con. BW |"
+    echo "|-----------:|--------:|--------:|--------:|--------:|---------:|---------:|---------:|"
+    
+    # Read CSV and format as markdown table (skip header)
+    tail -n +2 "$SIZE_CSV" | while IFS=',' read -r rate min_lat median_lat p75_lat p95_lat p99_lat pub_bw con_bw; do
+      formatted_rate=$(format_number "$rate")
+      # Ensure leading zeros for bandwidth values
+      [[ "$pub_bw" =~ ^\. ]] && pub_bw="0$pub_bw"
+      [[ "$con_bw" =~ ^\. ]] && con_bw="0$con_bw"
+      printf "| %10s | %7s | %7s | %7s | %7s | %8s | %8s | %8s |\n" \
+        "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$pub_bw" "$con_bw"
+    done
+    
+    echo ""
+  done
+  
 } > "$OUTPUT_FILE"
 
 echo "Results saved to: $OUTPUT_FILE"
