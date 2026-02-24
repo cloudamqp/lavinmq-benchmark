@@ -120,13 +120,24 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
       exit 1
     fi
     
-    # Calculate bandwidth in MiB/s
+    # Format latency values to 2 decimal places
+    MIN_MS=$(printf "%.2f" "$MIN_MS")
+    MEDIAN_MS=$(printf "%.2f" "$MEDIAN_MS")
+    P75_MS=$(printf "%.2f" "$P75_MS")
+    P95_MS=$(printf "%.2f" "$P95_MS")
+    P99_MS=$(printf "%.2f" "$P99_MS")
+
+    # Calculate bandwidth in MiB/s and format to 2 decimal places
     PUB_BW=$(echo "scale=2; ($SIZE * $PUB_RATE) / (1024 * 1024)" | bc)
     CON_BW=$(echo "scale=2; ($SIZE * $CON_RATE) / (1024 * 1024)" | bc)
     
     # Ensure leading zero for values < 1.0
     [[ "$PUB_BW" =~ ^\. ]] && PUB_BW="0$PUB_BW"
     [[ "$CON_BW" =~ ^\. ]] && CON_BW="0$CON_BW"
+
+    # Format bandwidth to exactly 2 decimal places
+    PUB_BW=$(printf "%.2f" "$PUB_BW")
+    CON_BW=$(printf "%.2f" "$CON_BW")
     
     echo "Results: Latency min/median/p75/p95/p99: ${MIN_MS}/${MEDIAN_MS}/${P75_MS}/${P95_MS}/${P99_MS} ms"
     echo "         Bandwidth: Publish=$PUB_BW MiB/s, Consume=$CON_BW MiB/s"
