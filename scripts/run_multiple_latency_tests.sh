@@ -95,7 +95,7 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
     # Run the latency test
     echo "Running latency test (size=$SIZE, rate=$RATE, duration=$DURATION seconds)..."
     TEST_OUTPUT=$(lavinmqperf throughput -z "$DURATION" -x 1 -y 1 -s "$SIZE" -r "$RATE" --measure-latency \
-      --uri="amqp://perftest:perftest@$BROKER_IP" 2>&1)
+      --uri="amqp://perftest:perftest@$BROKER_IP?tcp_nodelay=true" 2>&1)
     
     # Display the output
     echo "$TEST_OUTPUT"
