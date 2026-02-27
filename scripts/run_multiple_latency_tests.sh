@@ -70,7 +70,7 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
   
   # Initialize CSV for this size
   SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
-  echo "RateLimit,Min,Median,P75,P95,P99,PubBW,ConBW" > "$SIZE_CSV"
+  echo "RateLimit,Min,Median,P75,P95,P99,PubRate,PubBW,ConBW" > "$SIZE_CSV"
   
   # Run test for each rate limit
   for RATE in "${RATE_ARRAY[@]}"; do
@@ -140,11 +140,12 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
     CON_BW=$(printf "%.2f" "$CON_BW")
     
     echo "Results: Latency min/median/p75/p95/p99: ${MIN_MS}/${MEDIAN_MS}/${P75_MS}/${P95_MS}/${P99_MS} ms"
+    echo "         Publish rate: $PUB_RATE msgs/s"
     echo "         Bandwidth: Publish=$PUB_BW MiB/s, Consume=$CON_BW MiB/s"
     echo ""
     
     # Append to CSV
-    echo "$RATE,$MIN_MS,$MEDIAN_MS,$P75_MS,$P95_MS,$P99_MS,$PUB_BW,$CON_BW" >> "$SIZE_CSV"
+    echo "$RATE,$MIN_MS,$MEDIAN_MS,$P75_MS,$P95_MS,$P99_MS,$PUB_RATE,$PUB_BW,$CON_BW" >> "$SIZE_CSV"
   done
   
   echo ""
@@ -159,7 +160,9 @@ echo ""
 echo "Generating markdown summary..."
 
 {
-  echo "# Test Configuration"
+  echo "# $BROKER_INSTANCE_TYPE"
+  echo ""
+  echo "## Test Configuration"
   echo ""
   echo "- Duration: $DURATION seconds (\`-z $DURATION\`)"
   echo "- Producers: 1 (\`-x 1\`)"
@@ -173,9 +176,8 @@ echo "Generating markdown summary..."
   echo ""
   echo "- Rate limits: (msgs/s)"
   echo "- Latency [min, median, P75, P95, P99]: (ms)"
+  echo "- Publish rate: (msgs/s)"
   echo "- Publish/consume bandwidth: (MiB/s)"
-  echo ""
-  echo "# $BROKER_INSTANCE_TYPE"
   echo ""
   
   # Generate a table for each message size
@@ -184,17 +186,18 @@ echo "Generating markdown summary..."
     
     echo "## Message Size: $SIZE bytes"
     echo ""
-    echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 |  Pub. BW |  Con. BW |"
-    echo "|-----------:|--------:|--------:|--------:|--------:|---------:|---------:|---------:|"
+    echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
+    echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
     
     # Read CSV and format as markdown table (skip header)
-    tail -n +2 "$SIZE_CSV" | while IFS=',' read -r rate min_lat median_lat p75_lat p95_lat p99_lat pub_bw con_bw; do
+    tail -n +2 "$SIZE_CSV" | while IFS=',' read -r rate min_lat median_lat p75_lat p95_lat p99_lat pub_rate pub_bw con_bw; do
       formatted_rate=$(format_number "$rate")
+      formatted_pub_rate=$(format_number "$pub_rate")
       # Ensure leading zeros for bandwidth values
       [[ "$pub_bw" =~ ^\. ]] && pub_bw="0$pub_bw"
       [[ "$con_bw" =~ ^\. ]] && con_bw="0$con_bw"
-      printf "| %10s | %7s | %7s | %7s | %7s | %8s | %8s | %8s |\n" \
-        "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$pub_bw" "$con_bw"
+      printf "| %10s | %7s | %7s | %7s | %7s | %8s | %9s | %8s | %8s |\n" \
+        "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$formatted_pub_rate" "$pub_bw" "$con_bw"
     done
     
     echo ""
