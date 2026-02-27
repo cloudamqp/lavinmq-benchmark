@@ -30,7 +30,7 @@ Benchmark results for AWS instance types with LavinMQ version v2.6.0.
 Command:
 
 ```shell
-lavinmqperf throughput -z 120 -x 1 -y 1 -s <size> -r <rate-limit> --measure-latency
+lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-latency
 ```
 
 ### Burstable General-Purpose
