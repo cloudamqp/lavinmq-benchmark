@@ -35,8 +35,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **t4g.micro** - 2 vCPU, 1 GiB RAM (ARM-based AWS Graviton2)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     1.07 |     0.45 |      0.49 |      1.76 |       0.67 |
@@ -50,8 +48,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **t4g.small** - 2 vCPU, 2 GiB RAM (ARM-based AWS Graviton2)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     0.53 |     0.45 |      0.60 |      0.60 |       0.69 |
@@ -64,8 +60,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 |    500,000 |   141.91 |    57.00 |     30.21 |     20.29 |      13.57 |
 
 **t4g.medium** - 2 vCPU, 4 GiB RAM (ARM-based AWS Graviton2)
-
-#### P99 Latency Comparison (ms)
 
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
@@ -82,8 +76,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **r7g.medium** - 1 vCPU, 8 GiB RAM (ARM-based AWS Graviton3)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     1.00 |     0.24 |      0.24 |      0.27 |       0.58 |
@@ -97,8 +89,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **r7g.large** - 2 vCPU, 16 GiB RAM (ARM-based AWS Graviton3)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     1.10 |     0.43 |      0.30 |      0.34 |       0.53 |
@@ -111,8 +101,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 |    500,000 |   534.69 |   132.85 |     32.84 |     28.75 |      21.09 |
 
 **r7g.xlarge** - 4 vCPU, 32 GiB RAM (ARM-based AWS Graviton3)
-
-#### P99 Latency Comparison (ms)
 
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
@@ -129,8 +117,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **c8g.large** - 2 vCPU, 4 GiB RAM (ARM-based AWS Graviton4)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     0.90 |     0.35 |      0.18 |      0.36 |       2.74 |
@@ -143,8 +129,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 |    500,000 |   710.31 |   541.66 |    179.28 |     33.18 |     184.39 |
 
 **c7a.large** - 2 vCPU, 4 GiB RAM (AMD-based 4th gen EPYC)
-
-#### P99 Latency Comparison (ms)
 
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
@@ -161,8 +145,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 
 **i7i.large** - 2 vCPU, 16 GiB RAM (AMD-based Intel Xeon 5th gen, local NVMe)
 
-#### P99 Latency Comparison (ms)
-
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
 |         10 |     0.71 |     0.90 |      0.83 |      0.77 |       1.11 |
@@ -175,8 +157,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 |    500,000 |   965.91 |   655.45 |   2174.92 |  15974.51 |     110.10 |
 
 **i8g.large** - 2 vCPU, 16 GiB RAM (ARM-based AWS Graviton4, local NVMe)
-
-#### P99 Latency Comparison (ms)
 
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
@@ -192,8 +172,6 @@ lavinmqperf throughput -z 20 -x 1 -y 1 -s <size> -r <rate-limit> --measure-laten
 ### High Single-Threaded Performance
 
 **z1d.large** - 2 vCPU, 16 GiB RAM (AMD-based Intel Xeon Scalable)
-
-#### P99 Latency Comparison (ms)
 
 | Rate Limit | 16 bytes | 64 bytes | 256 bytes | 512 bytes | 1024 bytes |
 |-----------:|---------:|---------:|----------:|----------:|-----------:|
