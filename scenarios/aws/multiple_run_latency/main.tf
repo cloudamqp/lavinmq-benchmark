@@ -50,6 +50,7 @@ module "broker" {
   install_crystal     = true
   lavinmq_version     = var.lavinmq_version
   install_lavinmq     = true
+  configure_lavinmq   = true
   create_lavinmq_user = true
 }
 
