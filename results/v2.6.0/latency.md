@@ -1,4 +1,4 @@
-# LavinMQ Latency Results
+# LavinMQ P99 Latency Results
 
 ***Important***: These results are from single test runs per instance type. Anomalies may be due to:
 
@@ -19,9 +19,7 @@ Load generator -> AMQP-URL (broker private IP) -> Broker
 ## Table Headers
 
 - **Rate limit**: Rate limit in msgs/s
-- **Latency**: Min, median, P75, P95, P99 in ms
-- **Publish BW**: Publish bandwidth in MiB/s
-- **Consume BW**: Consume bandwidth in MiB/s
+- **Message Sizes** : 16, 64, 256, 512, 1024 bytes
 
 ## AWS Instance Types
 
