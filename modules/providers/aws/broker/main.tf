@@ -17,6 +17,7 @@ module "install_lavinmq" {
   lavinmq_version     = var.lavinmq_version
   install_crystal     = var.install_crystal
   install_lavinmq     = var.install_lavinmq
+  configure_lavinmq   = var.configure_lavinmq
   create_lavinmq_user = var.create_lavinmq_user
 }
 

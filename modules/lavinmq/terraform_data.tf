@@ -45,7 +45,27 @@ resource "terraform_data" "install_lavinmq" {
     ]
   }
 
-  depends_on = [ terraform_data.install_crystal ]
+  depends_on = [terraform_data.install_crystal]
+}
+
+resource "terraform_data" "configure_lavinmq" {
+  count = var.configure_lavinmq == false ? 0 : 1
+
+  connection {
+    type  = "ssh"
+    user  = "ubuntu"
+    host  = var.public_dns
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo sed -i '/^\\[main\\]/a tcp_nodelay = true' /etc/lavinmq/lavinmq.ini",
+      "sudo systemctl restart lavinmq.service"
+    ]
+  }
+
+  depends_on = [terraform_data.install_lavinmq]
 }
 
 resource "terraform_data" "create_user" {
@@ -66,7 +86,7 @@ resource "terraform_data" "create_user" {
     ]
   }
 
-  depends_on = [ terraform_data.install_lavinmq ]
+  depends_on = [terraform_data.configure_lavinmq]
 }
 
 output "user_ids" {
@@ -89,5 +109,5 @@ resource "terraform_data" "stop_lavinmq" {
     ]
   }
 
-  depends_on = [ terraform_data.install_lavinmq ]
+  depends_on = [terraform_data.install_lavinmq]
 }
