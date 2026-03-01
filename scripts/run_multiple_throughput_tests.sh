@@ -124,22 +124,26 @@ echo "Generating markdown summary..."
   echo ""
   echo "## Results"
   echo ""
-  echo "| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) | Pub. Bandwidth (MiB/s) | Con. Bandwidth (MiB/s) |"
-  echo "|-------------:|------------------------:|------------------------:|-----------------------:|-----------------------:|"
+  echo "- Size: (bytes)"
+  echo "- Average publish/consume rates: (msgs/s)"
+  echo "- Publish/Consume bandwidth: (MiB/s)"
+  echo ""
+  echo "|  Size | Avg. Publish Rate | Avg. Consume Rate |  Publish BW |  Consume BW |"
+  echo "|------:|------------------:|------------------:|------------:|------------:|"
   
   # Read CSV and format as markdown table (skip header)
   tail -n +2 "$TEMP_CSV" | while IFS=',' read -r size pub_rate con_rate pub_bw con_bw; do
     formatted_pub=$(format_number "$pub_rate")
     formatted_con=$(format_number "$con_rate")
-    printf "| %12s | %23s | %23s | %22s | %22s |\n" "$size" "$formatted_pub" "$formatted_con" "$pub_bw" "$con_bw"
+    printf "| %5s | %17s | %17s | %11s | %11s |\n" "$size" "$formatted_pub" "$formatted_con" "$pub_bw" "$con_bw"
   done
   
   echo ""
   echo "## Test Configuration"
   echo ""
   echo "- Duration: $DURATION seconds (\`-z $DURATION\`)"
-  echo "- Producers: 1 (`-x 1`)"
-  echo "- Consumers: 1 (`-y 1`)"
+  echo "- Producers: 1 (\`-x 1\`)"
+  echo "- Consumers: 1 (\`-y 1\`)"
   echo "- Message sizes: $SIZES bytes"
   echo "- Queue: $QUEUE_NAME"
   echo ""

@@ -76,7 +76,7 @@ TF_VAR_lavinmq_version = ""                       # Empty = latest, or specify v
 
 # Test configuration
 TF_VAR_message_sizes = [16, 64, 256, 512, 1024]   # Message sizes in bytes
-TF_VARtest_duration = 120                         # Duration of each test in seconds
+TF_VAR_test_duration = 120                        # Duration of each test in seconds
 ```
 
 ## Usage
