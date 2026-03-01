@@ -1,6 +1,6 @@
-variable aws_availability_zone {}
-variable tag_created_by {}
-variable tag_name {}
+variable "aws_availability_zone" {}
+variable "tag_created_by" {}
+variable "tag_name" {}
 
 resource "aws_vpc" "vpc" {
   cidr_block           = "172.16.0.0/16"
@@ -44,7 +44,7 @@ resource "aws_route_table_association" "rt-a" {
   route_table_id = aws_vpc.vpc.main_route_table_id
 }
 
-resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
+resource "aws_vpc_security_group_ingress_rule" "ssh" {
   security_group_id = aws_vpc.vpc.default_security_group_id
 
   cidr_ipv4   = "0.0.0.0/0"
@@ -52,11 +52,36 @@ resource "aws_vpc_security_group_ingress_rule" "all_traffic" {
   from_port   = 22
   to_port     = 22
 
-  # Use to allow incoming traffic
-  # ip_protocol = "-1"
+  tags = {
+    Name      = "${var.tag_name}-ssh"
+    CreatedBy = var.tag_created_by
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "amqp_internal" {
+  security_group_id = aws_vpc.vpc.default_security_group_id
+
+  cidr_ipv4   = aws_vpc.vpc.cidr_block
+  ip_protocol = "tcp"
+  from_port   = 5672
+  to_port     = 5672
 
   tags = {
-    Name      = var.tag_name
+    Name      = "${var.tag_name}-amqp"
+    CreatedBy = var.tag_created_by
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "http_api_internal" {
+  security_group_id = aws_vpc.vpc.default_security_group_id
+
+  cidr_ipv4   = aws_vpc.vpc.cidr_block
+  ip_protocol = "tcp"
+  from_port   = 15672
+  to_port     = 15672
+
+  tags = {
+    Name      = "${var.tag_name}-http-api"
     CreatedBy = var.tag_created_by
   }
 }
