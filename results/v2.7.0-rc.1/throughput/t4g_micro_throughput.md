@@ -25,4 +25,3 @@ LavinMQ Version: 2.7.0-rc.1
 - Consumers: 1 (`-y 1`)
 - Message sizes: 16,64,256,512,1024 bytes
 - Queue: perf-test
-
