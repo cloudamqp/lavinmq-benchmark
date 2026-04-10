@@ -217,7 +217,7 @@ echo "Generating markdown summary..."
     else
       # Per-run tables
       for RUN in $(seq 1 "$NUM_RUNS"); do
-        echo "### Run $RUN of $NUM_RUNS"
+        echo "### Run $RUN of $NUM_RUNS ($SIZE)"
         echo ""
         echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
         echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
@@ -234,7 +234,7 @@ echo "Generating markdown summary..."
       done
 
       # Summary table (median across runs per rate — robust against single-run spikes)
-      echo "### Summary ($NUM_RUNS runs)"
+      echo "### Summary ($NUM_RUNS runs, $SIZE)"
       echo ""
       echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
       echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
