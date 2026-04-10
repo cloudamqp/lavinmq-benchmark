@@ -82,12 +82,13 @@ resource "terraform_data" "multiple_throughput_tests" {
     agent = true
   }
 
-  # Trigger replacement when message sizes, test duration, broker instance type, or lavinmq version changes
+  # Trigger replacement when message sizes, test duration, broker instance type, lavinmq version, or num_runs changes
   triggers_replace = [
     join(",", var.message_sizes),
     var.test_duration,
     var.broker_instance_type,
-    var.lavinmq_version
+    var.lavinmq_version,
+    var.num_runs
   ]
 
   # Upload the test script
@@ -100,11 +101,12 @@ resource "terraform_data" "multiple_throughput_tests" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/ubuntu/run_multiple_throughput_tests.sh",
-      format("/home/ubuntu/run_multiple_throughput_tests.sh %s %s %s %s",
+      format("/home/ubuntu/run_multiple_throughput_tests.sh %s %s %s %s %s",
         module.broker.private_ip,
         join(",", var.message_sizes),
         var.test_duration,
-        var.broker_instance_type
+        var.broker_instance_type,
+        var.num_runs
       )
     ]
   }
