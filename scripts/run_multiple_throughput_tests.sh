@@ -162,29 +162,23 @@ echo "Generating markdown summary..."
       echo ""
     done
 
-    # Summary table: avg publish and consume rate per size
+    # Summary table: median publish and consume rate per size (robust against single-run spikes)
     echo "### Summary (${NUM_RUNS} runs)"
     echo ""
     echo "|  Size | Avg. Publish Rate | Avg. Consume Rate |  Publish BW |  Consume BW |"
     echo "|------:|------------------:|------------------:|------------:|------------:|"
     for SIZE in "${SIZE_ARRAY[@]}"; do
-      # Collect all pub_rates, con_rates, and bandwidths for this size across runs
-      PUB_RATES=$(grep ",${SIZE}," "$TEMP_CSV" | awk -F',' '{print $3}')
-      CON_RATES=$(grep ",${SIZE}," "$TEMP_CSV" | awk -F',' '{print $4}')
-      PUB_BWS=$(grep ",${SIZE}," "$TEMP_CSV" | awk -F',' '{print $5}')
-      CON_BWS=$(grep ",${SIZE}," "$TEMP_CSV" | awk -F',' '{print $6}')
-
-      AVG_PUB=$(echo "$PUB_RATES" | awk '{s+=$1; n++} END {printf "%d", s/n}')
-      AVG_CON=$(echo "$CON_RATES" | awk '{s+=$1; n++} END {printf "%d", s/n}')
-      AVG_PUB_BW=$(echo "$PUB_BWS" | awk '{s+=$1; n++} END {printf "%.2f", s/n}')
-      AVG_CON_BW=$(echo "$CON_BWS" | awk '{s+=$1; n++} END {printf "%.2f", s/n}')
+      MED_PUB=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$3} END {asort(vals); m=int(n/2)+1; printf "%d", vals[m]}' "$TEMP_CSV")
+      MED_CON=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$4} END {asort(vals); m=int(n/2)+1; printf "%d", vals[m]}' "$TEMP_CSV")
+      MED_PUB_BW=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$5} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$TEMP_CSV")
+      MED_CON_BW=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$6} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$TEMP_CSV")
 
       printf "| %5s | %17s | %17s | %11s | %11s |\n" \
         "$SIZE" \
-        "$(format_number "$AVG_PUB")" \
-        "$(format_number "$AVG_CON")" \
-        "$AVG_PUB_BW" \
-        "$AVG_CON_BW"
+        "$(format_number "$MED_PUB")" \
+        "$(format_number "$MED_CON")" \
+        "$MED_PUB_BW" \
+        "$MED_CON_BW"
     done
   fi
 
