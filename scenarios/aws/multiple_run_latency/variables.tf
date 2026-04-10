@@ -94,3 +94,9 @@ variable "test_duration" {
   type        = number
   default     = 120
 }
+
+variable "num_runs" {
+  description = "Number of times to repeat each size/rate combination (results are averaged in the summary)"
+  type        = number
+  default     = 1
+}
