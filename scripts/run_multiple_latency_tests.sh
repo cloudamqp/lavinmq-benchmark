@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Script to run multiple latency tests with different message sizes and rate limits
-# Usage: ./run_multiple_latency_tests.sh <broker_ip> [size1,size2,...] [rate1,rate2,...] [duration] [broker_instance_type] [num_runs]
+# Usage: ./run_multiple_latency_tests.sh <broker_ip> [size1,size2,...] [rate1,rate2,...] [duration] [broker_instance_type] [num_runs] [per_size_rate_limits]
+#   per_size_rate_limits format: "16:10,100,500000|64:10,100,450000" (size:rates pairs separated by |)
 
 set -e  # Exit on error
 
@@ -19,13 +20,14 @@ RATE_LIMITS="${3:-10,100,1000,10000,50000,100000,200000,500000}"  # Default rate
 DURATION="${4:-120}"  # Default duration 120 seconds if not provided
 BROKER_INSTANCE_TYPE="${5:-unknown}"  # Broker instance type for reporting
 NUM_RUNS="${6:-${BENCHMARK_NUM_RUNS:-1}}"  # Number of runs per combination, default 1
+PER_SIZE_RATE_LIMITS="${7:-}"              # Optional per-size rate limits, format: "size1:r1,r2|size2:r1,r2"
 OUTPUT_FILE="/home/ubuntu/latency_results.md"
 TEMP_DIR="/tmp/latency_test_$$"
 QUEUE_NAME="perf-test"
 
 if [ -z "$BROKER_IP" ]; then
   echo "Error: Broker IP not provided"
-  echo "Usage: $0 <broker_ip> [size1,size2,...] [rate1,rate2,...] [duration] [broker_instance_type] [num_runs]"
+  echo "Usage: $0 <broker_ip> [size1,size2,...] [rate1,rate2,...] [duration] [broker_instance_type] [num_runs] [per_size_rate_limits]"
   exit 1
 fi
 
@@ -54,6 +56,7 @@ echo "Broker Instance Type: $BROKER_INSTANCE_TYPE"
 echo "LavinMQ Version: $LAVINMQ_VERSION"
 echo "Message Sizes: $SIZES"
 echo "Rate Limits: $RATE_LIMITS msgs/s"
+echo "Per-Size Rate Limits: ${PER_SIZE_RATE_LIMITS:-(using global rate limits)}"
 echo "Test Duration: $DURATION seconds"
 echo "Number of Runs: $NUM_RUNS"
 echo "Output File: $OUTPUT_FILE"
@@ -63,6 +66,15 @@ echo ""
 # Convert comma-separated values to arrays
 IFS=',' read -ra SIZE_ARRAY <<< "$SIZES"
 IFS=',' read -ra RATE_ARRAY <<< "$RATE_LIMITS"
+
+# Parse per-size rate limits into associative array (format: "16:10,100,500000|64:10,100,450000")
+declare -A SIZE_RATE_MAP
+if [ -n "$PER_SIZE_RATE_LIMITS" ]; then
+  IFS='|' read -ra SIZE_RATE_PAIRS <<< "$PER_SIZE_RATE_LIMITS"
+  for PAIR in "${SIZE_RATE_PAIRS[@]}"; do
+    SIZE_RATE_MAP["${PAIR%%:*}"]="${PAIR#*:}"
+  done
+fi
 
 # Initialize CSV files for each size
 for SIZE in "${SIZE_ARRAY[@]}"; do
@@ -84,8 +96,12 @@ for RUN in $(seq 1 "$NUM_RUNS"); do
 
     SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
 
+    # Determine rate limits for this size (per-size override or global fallback)
+    RATES_STR="${SIZE_RATE_MAP[$SIZE]:-$RATE_LIMITS}"
+    IFS=',' read -ra RATES_THIS_SIZE <<< "$RATES_STR"
+
     # Run test for each rate limit
-    for RATE in "${RATE_ARRAY[@]}"; do
+    for RATE in "${RATES_THIS_SIZE[@]}"; do
       echo "--------------------------------------"
       echo "Run $RUN/$NUM_RUNS — size: $SIZE bytes, rate: $RATE msgs/s"
       echo "--------------------------------------"
@@ -183,6 +199,13 @@ echo "Generating markdown summary..."
   echo "- Runs per combination: $NUM_RUNS"
   echo "- Message sizes: $SIZES bytes"
   echo "- Rate limits: $RATE_LIMITS msgs/s"
+  if [ -n "$PER_SIZE_RATE_LIMITS" ]; then
+    echo "- Per-size rate limits override:"
+    IFS='|' read -ra _PAIRS <<< "$PER_SIZE_RATE_LIMITS"
+    for _PAIR in "${_PAIRS[@]}"; do
+      echo "  - ${_PAIR%%:*} bytes: ${_PAIR#*:} msgs/s"
+    done
+  fi
   echo "- Queue: $QUEUE_NAME"
   echo "- Latency measurement: Enabled (\`--measure-latency\`)"
   echo ""
@@ -239,7 +262,9 @@ echo "Generating markdown summary..."
       echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
       echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
 
-      for RATE in "${RATE_ARRAY[@]}"; do
+      RATES_STR="${SIZE_RATE_MAP[$SIZE]:-$RATE_LIMITS}"
+      IFS=',' read -ra RATES_THIS_SIZE <<< "$RATES_STR"
+      for RATE in "${RATES_THIS_SIZE[@]}"; do
         MED_MIN=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$3} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
         MED_MEDIAN=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$4} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
         MED_P75=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$5} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")

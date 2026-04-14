@@ -100,3 +100,9 @@ variable "num_runs" {
   type        = number
   default     = 1
 }
+
+variable "per_size_rate_limits" {
+  description = "Per-message-size rate limits. Overrides rate_limits for each specified size. Key is message size in bytes (as string), value is list of rate limits in msgs/s."
+  type        = map(list(number))
+  default     = {}
+}
