@@ -80,6 +80,7 @@ resource "terraform_data" "create_user" {
 
   provisioner "remote-exec" {
     inline = [
+      "until sudo lavinmqctl list_users > /dev/null 2>&1; do sleep 1; done",
       "sudo lavinmqctl add_user perftest perftest",
       "sudo lavinmqctl set_user_tags perftest administrator",
       "sudo lavinmqctl set_permissions perftest '.*' '.*' '.*'"
