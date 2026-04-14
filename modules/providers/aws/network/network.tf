@@ -72,6 +72,20 @@ resource "aws_vpc_security_group_ingress_rule" "amqp_internal" {
   }
 }
 
+resource "aws_vpc_security_group_ingress_rule" "mqtt_internal" {
+  security_group_id = aws_vpc.vpc.default_security_group_id
+
+  cidr_ipv4   = aws_vpc.vpc.cidr_block
+  ip_protocol = "tcp"
+  from_port   = 1883
+  to_port     = 1883
+
+  tags = {
+    Name      = "${var.tag_name}-mqtt"
+    CreatedBy = var.tag_created_by
+  }
+}
+
 resource "aws_vpc_security_group_ingress_rule" "http_api_internal" {
   security_group_id = aws_vpc.vpc.default_security_group_id
 

@@ -1,13 +1,14 @@
 module "instance" {
   source = "../instance"
 
-  ami_id            = var.ami_id
-  instance_type     = var.instance_type
-  ssh_key_pair_name = var.ssh_key_name
-  subnet_id         = var.subnet_id
-  tag_created_by    = var.tag_created_by
-  tag_name          = var.tag_name
-  volume_size       = var.volume_size
+  ami_id                     = var.ami_id
+  instance_type              = var.instance_type
+  ssh_key_pair_name          = var.ssh_key_name
+  subnet_id                  = var.subnet_id
+  tag_created_by             = var.tag_created_by
+  tag_name                   = var.tag_name
+  volume_size                = var.volume_size
+  secondary_private_ip_count = var.secondary_private_ip_count
 }
 
 module "install_lavinmq" {
