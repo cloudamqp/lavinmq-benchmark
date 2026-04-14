@@ -39,13 +39,13 @@ module "broker" {
   source = "../../../modules/providers/aws/broker"
 
   # Create AWS instance
-  ami_id              = module.ami.ami_id
-  instance_type       = var.broker_instance_type
-  ssh_key_name        = var.ssh_key_name
-  subnet_id           = module.network.subnet_identifier
-  tag_created_by      = var.tag_created_by
-  tag_name            = var.broker_name
-  volume_size         = var.broker_volume_size
+  ami_id         = module.ami.ami_id
+  instance_type  = var.broker_instance_type
+  ssh_key_name   = var.ssh_key_name
+  subnet_id      = module.network.subnet_identifier
+  tag_created_by = var.tag_created_by
+  tag_name       = var.broker_name
+  volume_size    = var.broker_volume_size
 
   # Install lavinmq
   install_crystal     = true
@@ -55,18 +55,18 @@ module "broker" {
 }
 
 module "load_generator" {
-  count = var.load_generator_count
+  count  = var.load_generator_count
   source = "../../../modules/providers/aws/load_generator"
 
   # Create AWS instance
-  ami_id            = module.ami.ami_id
-  instance_type     = var.load_generator_instance_type
-  ssh_key_name      = var.ssh_key_name
-  subnet_id         = module.network.subnet_identifier
-  tag_name          = format("%s_%s", var.load_generator_name, count.index)
-  tag_created_by    = var.tag_created_by
-  volume_size       = var.load_generator_volume_size
-  
+  ami_id         = module.ami.ami_id
+  instance_type  = var.load_generator_instance_type
+  ssh_key_name   = var.ssh_key_name
+  subnet_id      = module.network.subnet_identifier
+  tag_name       = format("%s_%s", var.load_generator_name, count.index)
+  tag_created_by = var.tag_created_by
+  volume_size    = var.load_generator_volume_size
+
   # Install lavinmq
   install_crystal = true
   lavinmq_version = var.lavinmq_version
@@ -75,7 +75,7 @@ module "load_generator" {
 }
 
 module "performance_test" {
-  count = var.load_generator_count
+  count  = var.load_generator_count
   source = "../../../modules/perftest"
 
   broker_private_ip         = module.broker.private_ip
