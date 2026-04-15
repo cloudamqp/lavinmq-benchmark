@@ -82,13 +82,15 @@ resource "terraform_data" "multiple_latency_tests" {
     agent = true
   }
 
-  # Trigger replacement when message sizes, rate limits, test duration, broker instance type, or lavinmq version changes
+  # Trigger replacement when message sizes, rate limits, test duration, broker instance type, lavinmq version, or num_runs changes
   triggers_replace = [
     join(",", var.message_sizes),
     join(",", var.rate_limits),
+    join("|", [for s, r in var.per_size_rate_limits : "${s}:${join(",", r)}"]),
     var.test_duration,
     var.broker_instance_type,
-    var.lavinmq_version
+    var.lavinmq_version,
+    var.num_runs
   ]
 
   # Upload the test script
@@ -101,12 +103,14 @@ resource "terraform_data" "multiple_latency_tests" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/ubuntu/run_multiple_latency_tests.sh",
-      format("/home/ubuntu/run_multiple_latency_tests.sh %s %s %s %s %s",
+      format("/home/ubuntu/run_multiple_latency_tests.sh %s %s %s %s %s %s '%s'",
         module.broker.private_ip,
         join(",", var.message_sizes),
         join(",", var.rate_limits),
         var.test_duration,
-        var.broker_instance_type
+        var.broker_instance_type,
+        var.num_runs,
+        join("|", [for s, r in var.per_size_rate_limits : "${s}:${join(",", r)}"])
       )
     ]
   }

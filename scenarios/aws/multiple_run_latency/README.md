@@ -76,9 +76,16 @@ TF_VAR_load_generator_volume_size = 8                                       # Ro
 TF_VAR_lavinmq_version = ""                                                 # Empty = latest, or specify version
 
 # Test configuration
-TF_VAR_message_sizes = [16, 64, 256, 512, 1024]                            # Message sizes in bytes
+TF_VAR_message_sizes = [16, 64, 256, 512, 1024, 4096, 16384, 65536]        # Message sizes in bytes
 TF_VAR_rate_limits = [10, 100, 1000, 10000, 50000, 100000, 200000, 500000] # Rate limits in msgs/s
-TF_VAR_test_duration = 120                                                  # Duration of each test in seconds
+TF_VAR_test_duration = 120                                                 # Duration of each test in seconds
+TF_VAR_num_runs = 3                                                        # Number of runs per combination, default 1
+
+# Optional: per-message-size rate limit overrides.
+# Sizes not listed fall back to TF_VAR_rate_limits.
+# This ensures no rate limit exceeds the instance's measured max throughput,
+# keeping latency results meaningful and comparable across instance types.
+TF_VAR_per_size_rate_limits = {"16":[10,100,1000,10000,50000,100000,250000,500000],"64":[10,100,1000,10000,50000,100000,250000,450000],"256":[10,100,1000,10000,50000,100000,350000],"512":[10,100,1000,10000,50000,100000,150000],"1024":[10,100,1000,10000,25000,50000,80000],"4096":[10,100,1000,5000,10000,20000],"16384":[10,100,500,1000,2000,5000],"65536":[10,100,500,1000]}
 ```
 
 ## Usage

@@ -94,3 +94,15 @@ variable "test_duration" {
   type        = number
   default     = 120
 }
+
+variable "num_runs" {
+  description = "Number of times to repeat each size/rate combination (results are averaged in the summary)"
+  type        = number
+  default     = 1
+}
+
+variable "per_size_rate_limits" {
+  description = "Per-message-size rate limits. Overrides rate_limits for each specified size. Key is message size in bytes (as string), value is list of rate limits in msgs/s."
+  type        = map(list(number))
+  default     = {}
+}
