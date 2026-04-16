@@ -1,0 +1,166 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      lavinmq_version:
+        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
+        required: true
+        type: string
+      scenarios:
+        description: "Which scenarios to run"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - latency
+          - throughput
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  latency:
+    name: "Latency"
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
+    uses: ./.github/workflows/benchmark-latency.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version }}
+    secrets: inherit
+
+  throughput:
+    name: "Throughput"
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
+    uses: ./.github/workflows/benchmark-throughput.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version }}
+    secrets: inherit
+
+  # --------------------------------------------------------------------------
+  # AGGREGATE & PR
+  # --------------------------------------------------------------------------
+  aggregate:
+    name: "Aggregate results & open PR"
+    needs: [latency, throughput]
+    # Run if at least one scenario finished (not cancelled, not skipped due to
+    # scenario selection), even if some matrix jobs within it failed.
+    if: |
+      always() && !cancelled() &&
+      (needs.latency.result == 'success' || needs.latency.result == 'failure' ||
+       needs.throughput.result == 'success' || needs.throughput.result == 'failure')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download latency artifacts
+        if: needs.latency.result == 'success' || needs.latency.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: latency-*
+          path: raw-results/latency
+          merge-multiple: false
+
+      - name: Download throughput artifacts
+        if: needs.throughput.result == 'success' || needs.throughput.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: throughput-*
+          path: raw-results/throughput
+          merge-multiple: false
+
+      - name: Check that at least one artifact was downloaded
+        run: |
+          if [ -z "$(find raw-results -name '*.md' 2>/dev/null)" ]; then
+            echo "No result files found – all benchmark jobs failed. Skipping PR."
+            echo "has_results=false" >> "$GITHUB_ENV"
+          else
+            echo "has_results=true" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: env.has_results == 'true'
+        with:
+          python-version: "3.x"
+
+      - name: Aggregate results
+        if: env.has_results == 'true'
+        run: |
+          python scripts/aggregate_results.py \
+            --version "${{ inputs.lavinmq_version }}" \
+            --latency-dir    raw-results/latency \
+            --throughput-dir raw-results/throughput \
+            --output-dir     results
+
+      - name: Commit and push results branch
+        if: env.has_results == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="v${{ inputs.lavinmq_version }}"
+          BRANCH="results/${VERSION}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin
+          if git ls-remote --exit-code --heads origin "${BRANCH}" > /dev/null 2>&1; then
+            git checkout "${BRANCH}"
+          else
+            git checkout -b "${BRANCH}"
+          fi
+
+          git add results/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add ${{ inputs.scenarios }} benchmark results for ${VERSION} [run ${{ github.run_id }}]"
+            git push origin "${BRANCH}"
+          else
+            echo "No new result files to commit."
+          fi
+
+          EXISTING=$(gh pr list --head "${BRANCH}" --json number --jq '.[0].number')
+          if [ -z "$EXISTING" ]; then
+            gh pr create \
+              --title "Benchmark results: ${VERSION}" \
+              --body "Automated benchmark results for LavinMQ **${VERSION}**.
+
+          Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          Scenarios: \`${{ inputs.scenarios }}\`
+
+          Results are in \`results/${VERSION}/\`. Additional scenarios can be added to this PR by triggering new runs with the same version." \
+              --base main \
+              --head "${BRANCH}"
+          else
+            echo "PR #${EXISTING} already exists for ${BRANCH} – results pushed to existing branch."
+          fi
+
+  # --------------------------------------------------------------------------
+  # SUMMARY
+  # --------------------------------------------------------------------------
+  summary:
+    name: "Workflow summary"
+    needs: [latency, throughput, aggregate]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write job summary
+        run: |
+          VERSION="v${{ inputs.lavinmq_version }}"
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Benchmark run: ${VERSION}
+
+          | | Result |
+          |---|---|
+          | LavinMQ version | \`${VERSION}\` |
+          | Scenarios | \`${{ inputs.scenarios }}\` |
+          | Latency jobs | ${{ needs.latency.result || 'skipped' }} |
+          | Throughput jobs | ${{ needs.throughput.result || 'skipped' }} |
+          | Aggregate & PR | ${{ needs.aggregate.result }} |
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
