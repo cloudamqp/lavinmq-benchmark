@@ -1,0 +1,156 @@
+name: Benchmark – Latency
+
+on:
+  workflow_call:
+    inputs:
+      lavinmq_version:
+        required: true
+        type: string
+
+env:
+  TF_VAR_aws_region: "us-east-1"
+  TF_VAR_aws_availability_zone: "us-east-1a"
+  TF_VAR_ubuntu_code_name: "noble"
+  TF_VAR_tag_created_by: "github-actions"
+  TF_VAR_tag_name: "lavinmq-benchmark-ci"
+  TF_VAR_message_sizes: "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
+  TF_VAR_num_runs: "3"
+  TF_VAR_broker_volume_size: "20"
+  TF_VAR_load_generator_volume_size: "8"
+  TF_VAR_lavinmq_version: ${{ inputs.lavinmq_version }}
+  TF_VAR_test_duration: "20"
+  TF_VAR_rate_limits: "[10, 100, 1000, 10000, 50000, 100000, 200000, 500000]"
+  TF_VAR_per_size_rate_limits: >-
+    {"16":[10,100,1000,5000,10000,50000,100000,250000,500000],
+     "64":[10,100,1000,5000,10000,50000,100000,250000,500000],
+     "256":[10,100,1000,5000,10000,50000,100000,250000],
+     "512":[10,100,1000,5000,10000,50000,100000],
+     "1024":[10,100,1000,5000,10000,50000],
+     "4096":[10,100,1000,5000,10000],
+     "16384":[10,100,1000,5000],
+     "65536":[10,100,1000]}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  run:
+    name: "${{ matrix.broker }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # arm64 – load generator: c8g.large
+          - broker: t4g.micro
+            arch: arm64
+            load_generator: c8g.large
+          - broker: t4g.small
+            arch: arm64
+            load_generator: c8g.large
+          - broker: t4g.medium
+            arch: arm64
+            load_generator: c8g.large
+          - broker: r7g.medium
+            arch: arm64
+            load_generator: c8g.large
+          - broker: r7g.large
+            arch: arm64
+            load_generator: c8g.large
+          - broker: r7g.xlarge
+            arch: arm64
+            load_generator: c8g.large
+          - broker: c8g.large
+            arch: arm64
+            load_generator: c8g.large
+          - broker: i8g.large
+            arch: arm64
+            load_generator: c8g.large
+          # amd64 – load generator: c7a.large
+          - broker: c7a.large
+            arch: amd64
+            load_generator: c7a.large
+          - broker: i7i.large
+            arch: amd64
+            load_generator: c7a.large
+          - broker: z1d.large
+            arch: amd64
+            load_generator: c7a.large
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Compute run-specific names
+        run: |
+          BROKER_SAFE="${{ matrix.broker }}"
+          BROKER_SAFE="${BROKER_SAFE//./-}"
+          SSH_KEY_NAME="benchmark-ci-latency-${{ github.run_id }}-${BROKER_SAFE}"
+          STATE_FILE="/tmp/tfstate-latency-${{ github.run_id }}-${BROKER_SAFE}.tfstate"
+          echo "broker_safe=${BROKER_SAFE}"    >> "$GITHUB_ENV"
+          echo "ssh_key_name=${SSH_KEY_NAME}"  >> "$GITHUB_ENV"
+          echo "state_file=${STATE_FILE}"      >> "$GITHUB_ENV"
+
+      - name: Write SSH public key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BENCHMARK_SSH_PUBLIC_KEY }}" > ~/.ssh/benchmark_key.pub
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BENCHMARK_SSH_PRIVATE_KEY }}
+
+      - name: Terraform init
+        working-directory: scenarios/aws/multiple_run_latency
+        run: terraform init
+
+      - name: Terraform apply
+        id: apply
+        working-directory: scenarios/aws/multiple_run_latency
+        run: |
+          terraform apply -auto-approve \
+            -state="${{ env.state_file }}" \
+            -var "ami_arch=${{ matrix.arch }}" \
+            -var "broker_instance_type=${{ matrix.broker }}" \
+            -var "broker_name=benchmark-broker-${{ env.broker_safe }}" \
+            -var "load_generator_instance_type=${{ matrix.load_generator }}" \
+            -var "load_generator_name=benchmark-loadgen-${{ env.broker_safe }}" \
+            -var "ssh_key_name=${{ env.ssh_key_name }}" \
+            -var "public_ssh_key=~/.ssh/benchmark_key.pub"
+
+      - name: Download results from load generator
+        id: download
+        if: steps.apply.outcome == 'success'
+        working-directory: scenarios/aws/multiple_run_latency
+        run: |
+          LG=$(terraform output -state="${{ env.state_file }}" -raw load_generator_public_dns)
+          scp -o StrictHostKeyChecking=accept-new \
+              -o UserKnownHostsFile=/tmp/known-hosts-latency-${{ env.broker_safe }} \
+              ubuntu@${LG}:/home/ubuntu/latency_results.md \
+              "${{ github.workspace }}/${{ env.broker_safe }}_latency.md"
+
+      - name: Upload artifact
+        if: steps.apply.outcome == 'success' && steps.download.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: latency-${{ matrix.broker }}
+          path: ${{ env.broker_safe }}_latency.md
+          if-no-files-found: error
+
+      - name: Terraform destroy
+        if: always()
+        working-directory: scenarios/aws/multiple_run_latency
+        run: |
+          terraform destroy -auto-approve \
+            -state="${{ env.state_file }}" \
+            -var "ami_arch=${{ matrix.arch }}" \
+            -var "broker_instance_type=${{ matrix.broker }}" \
+            -var "broker_name=benchmark-broker-${{ env.broker_safe }}" \
+            -var "load_generator_instance_type=${{ matrix.load_generator }}" \
+            -var "load_generator_name=benchmark-loadgen-${{ env.broker_safe }}" \
+            -var "ssh_key_name=${{ env.ssh_key_name }}" \
+            -var "public_ssh_key=~/.ssh/benchmark_key.pub"

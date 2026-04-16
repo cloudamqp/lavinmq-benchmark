@@ -35,22 +35,26 @@ bandwidth, stored on the load generator and displayed as Terraform output.
 Variables can be supplied in three ways:
 
 **`terraform.auto.tfvars`** — loaded automatically by Terraform:
+
 ```shell
 terraform apply
 ```
 
 **`terraform.tfvars`** — loaded explicitly:
+
 ```shell
 terraform apply -var-file="terraform.tfvars"
 ```
 
 **`.env` file via [dotenv](https://github.com/bkeepers/dotenv)** — environment variables prefixed
 with `TF_VAR_`:
+
 ```shell
 dotenv terraform apply
 ```
 
 Use the templates in `modules/providers/aws/variables_template/` as a starting point:
+
 - `terraform_tfvars.txt` — for `.tfvars` files
 - `env.txt` — for `.env` files
 
@@ -60,6 +64,48 @@ AWS credentials must be set as environment variables regardless of the method us
 export AWS_ACCESS_KEY=***
 export AWS_SECRET_KEY=***
 ```
+
+## CI / Parallel Benchmarks
+
+The [Benchmark](../../actions/workflows/benchmark.yml) GitHub Actions workflow provisions
+infrastructure, runs benchmarks across all supported instance types in parallel, aggregates the
+results into markdown summary files, and opens a pull request against `main` with the results
+committed to a `results/v{version}` branch.
+
+### Required secrets
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | AWS access key with EC2 / VPC create permissions |
+| `AWS_SECRET_ACCESS_KEY` | Corresponding AWS secret key |
+| `BENCHMARK_SSH_PRIVATE_KEY` | Private half of the key pair used by Terraform to connect to instances |
+| `BENCHMARK_SSH_PUBLIC_KEY` | Public half of the key pair (deployed to instances) |
+
+### Triggering a run
+
+**Via the GitHub UI:** go to **Actions → Benchmark → Run workflow**, fill in the version and pick a scenario.
+
+**Via the GitHub CLI:**
+
+```shell
+# Run both latency and throughput benchmarks
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=all
+
+# Latency only
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency
+
+# Throughput only
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=throughput
+```
+
+Results are committed to `results/v{version}/` and a pull request is created (or updated if one
+already exists for that version).
 
 ## Logging
 
