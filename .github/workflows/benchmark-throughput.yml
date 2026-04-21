@@ -86,11 +86,13 @@ jobs:
           echo "state_file=${STATE_FILE}"      >> "$GITHUB_ENV"
 
       - name: Write SSH public key
+        env:
+          SSH_PUBKEY: ${{ secrets.BENCHMARK_SSH_PUBLIC_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.BENCHMARK_SSH_PUBLIC_KEY }}" > ~/.ssh/benchmark_key.pub
+          printf '%s\n' "$SSH_PUBKEY" > ~/.ssh/benchmark_key.pub
 
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.BENCHMARK_SSH_PRIVATE_KEY }}
 
