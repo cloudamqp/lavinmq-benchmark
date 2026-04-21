@@ -13,7 +13,7 @@ env:
   TF_VAR_ubuntu_code_name: "noble"
   TF_VAR_tag_created_by: "github-actions"
   TF_VAR_tag_name: "lavinmq-benchmark-ci"
-  TF_VAR_message_sizes: "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
+  TF_VAR_message_sizes: "[16, 64]" # "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
   TF_VAR_num_runs: "3"
   TF_VAR_broker_volume_size: "20"
   TF_VAR_load_generator_volume_size: "8"
@@ -39,34 +39,34 @@ jobs:
           - broker: t4g.small
             arch: arm64
             load_generator: c8g.large
-          - broker: t4g.medium
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.medium
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.large
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.xlarge
-            arch: arm64
-            load_generator: c8g.large
-          - broker: c8g.large
-            arch: arm64
-            load_generator: c8g.large
-          - broker: i8g.large
-            arch: arm64
-            load_generator: c8g.large
-          # amd64 – load generator: c7a.large
-          - broker: c7a.large
-            arch: amd64
-            load_generator: c7a.large
-          - broker: i7i.large
-            arch: amd64
-            load_generator: c7a.large
-          - broker: z1d.large
-            arch: amd64
-            load_generator: c7a.large
+          # - broker: t4g.medium
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # - broker: r7g.medium
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # - broker: r7g.large
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # - broker: r7g.xlarge
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # - broker: c8g.large
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # - broker: i8g.large
+          #   arch: arm64
+          #   load_generator: c8g.large
+          # # amd64 – load generator: c7a.large
+          # - broker: c7a.large
+          #   arch: amd64
+          #   load_generator: c7a.large
+          # - broker: i7i.large
+          #   arch: amd64
+          #   load_generator: c7a.large
+          # - broker: z1d.large
+          #   arch: amd64
+          #   load_generator: c7a.large
 
     steps:
       - uses: actions/checkout@v4
