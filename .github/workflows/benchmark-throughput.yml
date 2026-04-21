@@ -33,12 +33,12 @@ jobs:
       matrix:
         include:
           # arm64 – load generator: c8g.large
-          - broker: t4g.micro
-            arch: arm64
-            load_generator: c8g.large
-          # - broker: t4g.small
+          # - broker: t4g.micro
           #   arch: arm64
           #   load_generator: c8g.large
+          - broker: t4g.small
+            arch: arm64
+            load_generator: c8g.large
           # - broker: t4g.medium
           #   arch: arm64
           #   load_generator: c8g.large
