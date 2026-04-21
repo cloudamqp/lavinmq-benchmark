@@ -69,9 +69,9 @@ jobs:
           #   load_generator: c7a.large
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
         with:
           terraform_version: "~1.9"
 
@@ -92,7 +92,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PUBKEY" > ~/.ssh/benchmark_key.pub
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
+      - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
         with:
           ssh-private-key: ${{ secrets.BENCHMARK_SSH_PRIVATE_KEY }}
 
@@ -127,7 +127,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.apply.outcome == 'success' && steps.download.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: throughput-${{ matrix.broker }}
           path: ${{ env.broker_safe }}_throughput.md
