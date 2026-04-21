@@ -387,7 +387,7 @@ def main() -> None:
     out_root = Path(args.output_dir) / f"v{version}"
 
     # ---- Latency -----------------------------------------------------------
-    if args.latency_dir:
+    if args.latency_dir and Path(args.latency_dir).is_dir():
         latency_dir = Path(args.latency_dir)
         latency_files = sorted(latency_dir.glob("**/*_latency.md"))
         if latency_files:
@@ -413,11 +413,12 @@ def main() -> None:
                     out_path = out_root / f"latency_{label}.md"
                     out_path.write_text(summary)
                     print(f"  Written: {out_path}")
+
         else:
             print(f"  No latency files found in {latency_dir}")
 
     # ---- Throughput --------------------------------------------------------
-    if args.throughput_dir:
+    if args.throughput_dir and Path(args.throughput_dir).is_dir():
         throughput_dir = Path(args.throughput_dir)
         throughput_files = sorted(throughput_dir.glob("**/*_throughput.md"))
         if throughput_files:
