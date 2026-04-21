@@ -1,0 +1,17 @@
+name: Benchmark  # This name must match exactly in both branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      input1:
+        description: 'First test input'
+        required: true
+      input2:
+        description: 'Second test input'
+        required: true
+
+jobs:
+  skeleton:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This is a placeholder. Run this from your feature branch instead!"
