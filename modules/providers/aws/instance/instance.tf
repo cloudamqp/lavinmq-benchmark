@@ -23,22 +23,10 @@ resource "aws_instance" "instance" {
   }
 }
 
-resource "aws_eip" "this" {
-  domain = "vpc"
-
-  instance                  = aws_instance.instance.id
-  associate_with_private_ip = aws_instance.instance.private_ip
-
-  tags = {
-    Name      = var.tag_name
-    CreatedBy = var.tag_created_by
-  }
-}
-
 output "public_dns" {
-  value = aws_eip.this.public_dns
+  value = aws_instance.instance.public_dns
 }
 
 output "private_ip" {
-  value = aws_eip.this.private_ip
+  value = aws_instance.instance.private_ip
 }
