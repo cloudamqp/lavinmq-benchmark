@@ -111,7 +111,7 @@ resource "terraform_data" "multiple_throughput_tests" {
     ]
   }
 
-  depends_on = [module.broker.user_ids]
+  depends_on = [module.broker.user_ids, module.load_generator]
 }
 
 # Outputs
