@@ -6,6 +6,17 @@ on:
       lavinmq_version:
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      lavinmq_version:
+        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
+        required: true
+        type: string
+      brokers:
+        description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
+        required: false
+        type: string
+        default: ""
 
 env:
   TF_VAR_aws_region: "us-east-2"
@@ -33,50 +44,45 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.matrix }}
+    steps:
+      - name: Build matrix
+        id: filter
+        run: |
+          FULL_MATRIX='[
+            {"broker":"t4g.micro",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"t4g.small",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"t4g.medium", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.medium", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.xlarge", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"c8g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"i8g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"c7a.large",  "arch":"amd64","load_generator":"c7a.large"},
+            {"broker":"i7i.large",  "arch":"amd64","load_generator":"c7a.large"},
+            {"broker":"z1d.large",  "arch":"amd64","load_generator":"c7a.large"}
+          ]'
+          BROKERS="${{ inputs.brokers }}"
+          if [ -z "$BROKERS" ]; then
+            MATRIX=$(echo "$FULL_MATRIX" | jq -c '{include: .}')
+          else
+            FILTER=$(echo "$BROKERS" | tr ',' '\n' | jq -R . | jq -s .)
+            MATRIX=$(echo "$FULL_MATRIX" | jq -c --argjson f "$FILTER" '{include: [.[] | select(.broker as $b | $f | index($b))]}')
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
   run:
     name: "${{ matrix.broker }}"
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # arm64 – load generator: c8g.large
-          - broker: t4g.micro
-            arch: arm64
-            load_generator: c8g.large
-          - broker: t4g.small
-            arch: arm64
-            load_generator: c8g.large
-          - broker: t4g.medium
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.medium
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.large
-            arch: arm64
-            load_generator: c8g.large
-          - broker: r7g.xlarge
-            arch: arm64
-            load_generator: c8g.large
-          - broker: c8g.large
-            arch: arm64
-            load_generator: c8g.large
-          - broker: i8g.large
-            arch: arm64
-            load_generator: c8g.large
-          # amd64 – load generator: c7a.large
-          - broker: c7a.large
-            arch: amd64
-            load_generator: c7a.large
-          - broker: i7i.large
-            arch: amd64
-            load_generator: c7a.large
-          - broker: z1d.large
-            arch: amd64
-            load_generator: c7a.large
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v6
