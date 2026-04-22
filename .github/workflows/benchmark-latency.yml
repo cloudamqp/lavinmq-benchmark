@@ -6,6 +6,10 @@ on:
       lavinmq_version:
         required: true
         type: string
+      brokers:
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       lavinmq_version:

@@ -16,6 +16,11 @@ on:
           - all
           - latency
           - throughput
+      brokers:
+        description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -27,6 +32,7 @@ jobs:
     uses: ./.github/workflows/benchmark-latency.yml
     with:
       lavinmq_version: ${{ inputs.lavinmq_version }}
+      brokers: ${{ inputs.brokers }}
     secrets: inherit
 
   throughput:
@@ -35,6 +41,7 @@ jobs:
     uses: ./.github/workflows/benchmark-throughput.yml
     with:
       lavinmq_version: ${{ inputs.lavinmq_version }}
+      brokers: ${{ inputs.brokers }}
     secrets: inherit
 
   # --------------------------------------------------------------------------
