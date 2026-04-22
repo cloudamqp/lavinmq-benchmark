@@ -407,6 +407,15 @@ def main() -> None:
                 except Exception as e:
                     print(f"  WARNING: failed to parse {f}: {e}")
 
+            for existing_f in sorted(out_latency.glob("*_latency.md")):
+                slug = slug_from_filename(existing_f, "_latency")
+                if slug not in parsed_latency:
+                    print(f"  Including existing: {existing_f.name} -> slug={slug}")
+                    try:
+                        parsed_latency[slug] = parse_latency_file(existing_f)
+                    except Exception as e:
+                        print(f"  WARNING: failed to parse existing {existing_f}: {e}")
+
             if parsed_latency:
                 for pct, label in [("p95", "P95"), ("p99", "P99")]:
                     summary = build_latency_summary(parsed_latency, version, pct, label)
@@ -435,6 +444,15 @@ def main() -> None:
                     parsed_throughput[slug] = parse_throughput_file(f)
                 except Exception as e:
                     print(f"  WARNING: failed to parse {f}: {e}")
+
+            for existing_f in sorted(out_throughput.glob("*_throughput.md")):
+                slug = slug_from_filename(existing_f, "_throughput")
+                if slug not in parsed_throughput:
+                    print(f"  Including existing: {existing_f.name} -> slug={slug}")
+                    try:
+                        parsed_throughput[slug] = parse_throughput_file(existing_f)
+                    except Exception as e:
+                        print(f"  WARNING: failed to parse existing {existing_f}: {e}")
 
             if parsed_throughput:
                 summary = build_throughput_summary(parsed_throughput, version)
