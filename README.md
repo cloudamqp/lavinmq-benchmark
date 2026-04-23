@@ -72,15 +72,6 @@ infrastructure, runs benchmarks across all supported instance types in parallel,
 results into markdown summary files, and opens a pull request against `main` with the results
 committed to a `results/v{version}` branch.
 
-### Required secrets
-
-| Secret | Description |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | AWS access key with EC2 / VPC create permissions |
-| `AWS_SECRET_ACCESS_KEY` | Corresponding AWS secret key |
-| `BENCHMARK_SSH_PRIVATE_KEY` | Private half of the key pair used by Terraform to connect to instances |
-| `BENCHMARK_SSH_PUBLIC_KEY` | Public half of the key pair (deployed to instances) |
-
 ### Triggering a run
 
 **Via the GitHub UI:** go to **Actions → Benchmark → Run workflow**, fill in the version and pick a scenario.
@@ -88,7 +79,7 @@ committed to a `results/v{version}` branch.
 **Via the GitHub CLI:**
 
 ```shell
-# Run both latency and throughput benchmarks
+# Run both latency and throughput benchmarks for all instance types
 gh workflow run benchmark.yml \
   -f lavinmq_version=2.7.0 \
   -f scenarios=all
@@ -106,6 +97,29 @@ gh workflow run benchmark.yml \
 
 Results are committed to `results/v{version}/` and a pull request is created (or updated if one
 already exists for that version).
+
+### Re-running specific broker instance types
+
+All three workflows accept an optional `brokers` input — a comma-separated list of broker instance
+types to run. When omitted or empty, all instance types are benchmarked. This is useful for
+re-running a single instance type that failed without triggering the full suite.
+
+```shell
+# Re-run latency benchmark for a single instance type
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency \
+  -f brokers="c8g.large"
+
+# Re-run latency benchmark for multiple specific instance types
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency \
+  -f brokers="c8g.large,t4g.medium"
+```
+
+The individual `benchmark-latency.yml` and `benchmark-throughput.yml` workflows can also be
+triggered directly in the same way if you want to skip the aggregate/PR step.
 
 ## Logging
 
