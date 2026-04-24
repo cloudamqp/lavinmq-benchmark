@@ -1,0 +1,158 @@
+name: Benchmark – Throughput
+
+on:
+  workflow_call:
+    inputs:
+      lavinmq_version:
+        required: true
+        type: string
+      brokers:
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      lavinmq_version:
+        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
+        required: true
+        type: string
+      brokers:
+        description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
+        required: false
+        type: string
+        default: ""
+
+env:
+  TF_VAR_aws_region: "us-east-2"
+  TF_VAR_aws_availability_zone: "us-east-2a"
+  TF_VAR_ubuntu_code_name: "noble"
+  TF_VAR_tag_created_by: "github-actions"
+  TF_VAR_tag_name: "lavinmq-benchmark-ci"
+  TF_VAR_message_sizes: "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
+  TF_VAR_num_runs: "3"
+  TF_VAR_broker_volume_size: "20"
+  TF_VAR_load_generator_volume_size: "8"
+  TF_VAR_lavinmq_version: ${{ inputs.lavinmq_version }}
+  TF_VAR_test_duration: "60"
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.matrix }}
+    steps:
+      - name: Build matrix
+        id: filter
+        run: |
+          FULL_MATRIX='[
+            {"broker":"t4g.micro",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"t4g.small",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"t4g.medium", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.medium", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"r7g.xlarge", "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"c8g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"i8g.large",  "arch":"arm64","load_generator":"c8g.large"},
+            {"broker":"c7a.large",  "arch":"amd64","load_generator":"c7a.large"},
+            {"broker":"i7i.large",  "arch":"amd64","load_generator":"c7a.large"},
+            {"broker":"z1d.large",  "arch":"amd64","load_generator":"c7a.large"}
+          ]'
+          BROKERS="${{ inputs.brokers }}"
+          if [ -z "$BROKERS" ]; then
+            MATRIX=$(echo "$FULL_MATRIX" | jq -c '{include: .}')
+          else
+            FILTER=$(echo "$BROKERS" | tr ',' '\n' | jq -R . | jq -s .)
+            MATRIX=$(echo "$FULL_MATRIX" | jq -c --argjson f "$FILTER" '{include: [.[] | select(.broker as $b | $f | index($b))]}')
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+  run:
+    name: "${{ matrix.broker }}"
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        with:
+          terraform_version: "~1.9"
+
+      - name: Compute run-specific names
+        run: |
+          BROKER_SAFE="${{ matrix.broker }}"
+          BROKER_SAFE="${BROKER_SAFE//./-}"
+          SSH_KEY_NAME="benchmark-ci-throughput-${{ github.run_id }}-${BROKER_SAFE}"
+          STATE_FILE="/tmp/tfstate-throughput-${{ github.run_id }}-${BROKER_SAFE}.tfstate"
+          echo "broker_safe=${BROKER_SAFE}"    >> "$GITHUB_ENV"
+          echo "ssh_key_name=${SSH_KEY_NAME}"  >> "$GITHUB_ENV"
+          echo "state_file=${STATE_FILE}"      >> "$GITHUB_ENV"
+
+      - name: Write SSH public key
+        env:
+          SSH_PUBKEY: ${{ secrets.BENCHMARK_SSH_PUBLIC_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PUBKEY" > ~/.ssh/benchmark_key.pub
+
+      - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.BENCHMARK_SSH_PRIVATE_KEY }}
+
+      - name: Terraform init
+        working-directory: scenarios/aws/multiple_run_throughput
+        run: terraform init
+
+      - name: Terraform apply
+        id: apply
+        working-directory: scenarios/aws/multiple_run_throughput
+        run: |
+          terraform apply -auto-approve \
+            -state="${{ env.state_file }}" \
+            -var "ami_arch=${{ matrix.arch }}" \
+            -var "broker_instance_type=${{ matrix.broker }}" \
+            -var "broker_name=benchmark-broker-${{ env.broker_safe }}" \
+            -var "load_generator_instance_type=${{ matrix.load_generator }}" \
+            -var "load_generator_name=benchmark-loadgen-${{ env.broker_safe }}" \
+            -var "ssh_key_name=${{ env.ssh_key_name }}" \
+            -var "public_ssh_key=~/.ssh/benchmark_key.pub"
+
+      - name: Download results from load generator
+        id: download
+        if: steps.apply.outcome == 'success'
+        working-directory: scenarios/aws/multiple_run_throughput
+        run: |
+          LG=$(terraform output -state="${{ env.state_file }}" -raw load_generator_public_dns)
+          scp -o StrictHostKeyChecking=accept-new \
+              -o UserKnownHostsFile=/tmp/known-hosts-throughput-${{ env.broker_safe }} \
+              ubuntu@${LG}:/home/ubuntu/throughput_results.md \
+              "${{ github.workspace }}/${{ env.broker_safe }}_throughput.md"
+
+      - name: Upload artifact
+        if: steps.apply.outcome == 'success' && steps.download.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: throughput-${{ matrix.broker }}
+          path: ${{ env.broker_safe }}_throughput.md
+          if-no-files-found: error
+
+      - name: Terraform destroy
+        if: always()
+        working-directory: scenarios/aws/multiple_run_throughput
+        run: |
+          terraform destroy -auto-approve \
+            -state="${{ env.state_file }}" \
+            -var "ami_arch=${{ matrix.arch }}" \
+            -var "broker_instance_type=${{ matrix.broker }}" \
+            -var "broker_name=benchmark-broker-${{ env.broker_safe }}" \
+            -var "load_generator_instance_type=${{ matrix.load_generator }}" \
+            -var "load_generator_name=benchmark-loadgen-${{ env.broker_safe }}" \
+            -var "ssh_key_name=${{ env.ssh_key_name }}" \
+            -var "public_ssh_key=~/.ssh/benchmark_key.pub"
