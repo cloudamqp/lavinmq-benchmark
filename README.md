@@ -35,22 +35,26 @@ bandwidth, stored on the load generator and displayed as Terraform output.
 Variables can be supplied in three ways:
 
 **`terraform.auto.tfvars`** — loaded automatically by Terraform:
+
 ```shell
 terraform apply
 ```
 
 **`terraform.tfvars`** — loaded explicitly:
+
 ```shell
 terraform apply -var-file="terraform.tfvars"
 ```
 
 **`.env` file via [dotenv](https://github.com/bkeepers/dotenv)** — environment variables prefixed
 with `TF_VAR_`:
+
 ```shell
 dotenv terraform apply
 ```
 
 Use the templates in `modules/providers/aws/variables_template/` as a starting point:
+
 - `terraform_tfvars.txt` — for `.tfvars` files
 - `env.txt` — for `.env` files
 
@@ -60,6 +64,62 @@ AWS credentials must be set as environment variables regardless of the method us
 export AWS_ACCESS_KEY=***
 export AWS_SECRET_KEY=***
 ```
+
+## CI / Parallel Benchmarks
+
+The [Benchmark](../../actions/workflows/benchmark.yml) GitHub Actions workflow provisions
+infrastructure, runs benchmarks across all supported instance types in parallel, aggregates the
+results into markdown summary files, and opens a pull request against `main` with the results
+committed to a `results/v{version}` branch.
+
+### Triggering a run
+
+**Via the GitHub UI:** go to **Actions → Benchmark → Run workflow**, fill in the version and pick a scenario.
+
+**Via the GitHub CLI:**
+
+```shell
+# Run both latency and throughput benchmarks for all instance types
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=all
+
+# Latency only
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency
+
+# Throughput only
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=throughput
+```
+
+Results are committed to `results/v{version}/` and a pull request is created (or updated if one
+already exists for that version).
+
+### Re-running specific broker instance types
+
+All three workflows accept an optional `brokers` input — a comma-separated list of broker instance
+types to run. When omitted or empty, all instance types are benchmarked. This is useful for
+re-running a single instance type that failed without triggering the full suite.
+
+```shell
+# Re-run latency benchmark for a single instance type
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency \
+  -f brokers="c8g.large"
+
+# Re-run latency benchmark for multiple specific instance types
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=latency \
+  -f brokers="c8g.large,t4g.medium"
+```
+
+The individual `benchmark-latency.yml` and `benchmark-throughput.yml` workflows can also be
+triggered directly in the same way if you want to skip the aggregate/PR step.
 
 ## Logging
 

@@ -1,17 +1,167 @@
-name: Benchmark  # This name must match exactly in both branches
+name: Benchmark
 
 on:
   workflow_dispatch:
     inputs:
-      input1:
-        description: 'First test input'
+      lavinmq_version:
+        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
         required: true
-      input2:
-        description: 'Second test input'
+        type: string
+      scenarios:
+        description: "Which scenarios to run"
         required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - latency
+          - throughput
+      brokers:
+        description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
 
 jobs:
-  skeleton:
+  latency:
+    name: "Latency"
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
+    uses: ./.github/workflows/benchmark-latency.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version }}
+      brokers: ${{ inputs.brokers }}
+    secrets: inherit
+
+  throughput:
+    name: "Throughput"
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
+    uses: ./.github/workflows/benchmark-throughput.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version }}
+      brokers: ${{ inputs.brokers }}
+    secrets: inherit
+
+  # --------------------------------------------------------------------------
+  # AGGREGATE & PR
+  # --------------------------------------------------------------------------
+  aggregate:
+    name: "Aggregate results & open PR"
+    needs: [latency, throughput]
+    # Run if at least one scenario finished (not cancelled, not skipped due to
+    # scenario selection), even if some matrix jobs within it failed.
+    if: |
+      always() && !cancelled() &&
+      (needs.latency.result == 'success' || needs.latency.result == 'failure' ||
+       needs.throughput.result == 'success' || needs.throughput.result == 'failure')
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "This is a placeholder. Run this from your feature branch instead!"
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download latency artifacts
+        if: needs.latency.result == 'success' || needs.latency.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: latency-*
+          path: raw-results/latency
+          merge-multiple: false
+
+      - name: Download throughput artifacts
+        if: needs.throughput.result == 'success' || needs.throughput.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: throughput-*
+          path: raw-results/throughput
+          merge-multiple: false
+
+      - name: Check that at least one artifact was downloaded
+        run: |
+          if [ -z "$(find raw-results -name '*.md' 2>/dev/null)" ]; then
+            echo "No result files found – all benchmark jobs failed. Skipping PR."
+            echo "has_results=false" >> "$GITHUB_ENV"
+          else
+            echo "has_results=true" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/setup-python@v6
+        if: env.has_results == 'true'
+        with:
+          python-version: "3.x"
+
+      - name: Restore existing results from PR branch
+        if: env.has_results == 'true'
+        run: |
+          BRANCH="results/v${{ inputs.lavinmq_version }}"
+          if git fetch origin "${BRANCH}" 2>/dev/null; then
+            git checkout "origin/${BRANCH}" -- results/ 2>/dev/null || true
+          fi
+
+      - name: Aggregate results
+        if: env.has_results == 'true'
+        run: |
+          python scripts/aggregate_results.py \
+            --version "${{ inputs.lavinmq_version }}" \
+            --latency-dir    raw-results/latency \
+            --throughput-dir raw-results/throughput \
+            --output-dir     results
+
+      - name: Configure git
+        if: env.has_results == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clean up raw results
+        if: env.has_results == 'true'
+        run: rm -rf raw-results/
+
+      - name: Create Pull Request
+        if: env.has_results == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          add-paths: results/
+          draft: true # Temporary draft status
+          branch: results/v${{ inputs.lavinmq_version }}
+          base: main
+          title: "Benchmark results: v${{ inputs.lavinmq_version }}"
+          commit-message: "Add ${{ inputs.scenarios }} benchmark results for v${{ inputs.lavinmq_version }} [run ${{ github.run_id }}]"
+          body: |
+            Automated benchmark results for LavinMQ **v${{ inputs.lavinmq_version }}**.
+
+            Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            Scenarios: `${{ inputs.scenarios }}`
+
+            Results are in `results/v${{ inputs.lavinmq_version }}/`. Additional scenarios can be added to this PR by triggering new runs with the same version.
+
+  # --------------------------------------------------------------------------
+  # SUMMARY
+  # --------------------------------------------------------------------------
+  summary:
+    name: "Workflow summary"
+    needs: [latency, throughput, aggregate]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write job summary
+        run: |
+          VERSION="v${{ inputs.lavinmq_version }}"
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Benchmark run: ${VERSION}
+
+          | | Result |
+          |---|---|
+          | LavinMQ version | \`${VERSION}\` |
+          | Scenarios | \`${{ inputs.scenarios }}\` |
+          | Latency jobs | ${{ needs.latency.result || 'skipped' }} |
+          | Throughput jobs | ${{ needs.throughput.result || 'skipped' }} |
+          | Aggregate & PR | ${{ needs.aggregate.result }} |
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
