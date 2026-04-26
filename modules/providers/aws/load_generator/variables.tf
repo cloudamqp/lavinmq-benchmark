@@ -54,3 +54,9 @@ variable stop_lavinmq {
   type    = bool
   default = false
 }
+
+variable "secondary_private_ip_count" {
+  description = "Number of secondary private IPs to assign (for high connection count tests)"
+  type        = number
+  default     = 0
+}
