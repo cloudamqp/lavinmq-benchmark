@@ -2,8 +2,8 @@
 
 apt-get update -qq > /dev/null
 
-# Use lavinmq-prerelease repository for release candidates
-if [[ -n "${LAVINMQ_VERSION}" && "${LAVINMQ_VERSION}" == *"-rc"* ]]; then
+# Use lavinmq-prerelease repository for pre-release versions (rc, beta, alpha)
+if [[ -n "${LAVINMQ_VERSION}" && "${LAVINMQ_VERSION}" =~ -(rc|beta|alpha) ]]; then
     REPO_NAME="lavinmq-prerelease"
 else
     REPO_NAME="lavinmq"
