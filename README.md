@@ -93,6 +93,12 @@ gh workflow run benchmark.yml \
 gh workflow run benchmark.yml \
   -f lavinmq_version=2.7.0 \
   -f scenarios=throughput
+
+# Run from a specific branch (e.g. when testing workflow changes)
+gh workflow run benchmark.yml \
+  -r my-branch \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=all
 ```
 
 Results are committed to `results/v{version}/` and a pull request is created (or updated if one
