@@ -10,6 +10,18 @@ on:
         required: false
         type: string
         default: ""
+      num_runs:
+        required: false
+        type: string
+        default: ""
+      message_sizes:
+        required: false
+        type: string
+        default: ""
+      test_duration:
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       lavinmq_version:
@@ -21,6 +33,21 @@ on:
         required: false
         type: string
         default: ""
+      num_runs:
+        description: "Number of runs per scenario (default: 3)."
+        required: false
+        type: string
+        default: "3"
+      message_sizes:
+        description: "JSON array of message sizes in bytes (default: [16, 64, 256, 512, 1024, 4096, 16384, 65536])."
+        required: false
+        type: string
+        default: "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
+      test_duration:
+        description: "Test duration in seconds per run (default: 60)."
+        required: false
+        type: string
+        default: "60"
 
 env:
   TF_VAR_aws_region: "us-east-2"
@@ -28,12 +55,12 @@ env:
   TF_VAR_ubuntu_code_name: "noble"
   TF_VAR_tag_created_by: "github-actions"
   TF_VAR_tag_name: "lavinmq-benchmark-ci"
-  TF_VAR_message_sizes: "[16, 64, 256, 512, 1024, 4096, 16384, 65536]"
-  TF_VAR_num_runs: "3"
+  TF_VAR_message_sizes: ${{ inputs.message_sizes || '[16, 64, 256, 512, 1024, 4096, 16384, 65536]' }}
+  TF_VAR_num_runs: ${{ inputs.num_runs || '3' }}
   TF_VAR_broker_volume_size: "20"
   TF_VAR_load_generator_volume_size: "8"
   TF_VAR_lavinmq_version: ${{ inputs.lavinmq_version }}
-  TF_VAR_test_duration: "60"
+  TF_VAR_test_duration: ${{ inputs.test_duration || '60' }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
