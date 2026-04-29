@@ -21,6 +21,31 @@ on:
         required: false
         type: string
         default: ""
+      num_runs:
+        description: "Number of runs per scenario. Leave empty to use default (3)."
+        required: false
+        type: string
+        default: ""
+      message_sizes:
+        description: "JSON array of message sizes in bytes. Leave empty to use default ([16, 64, 256, 512, 1024, 4096, 16384, 65536])."
+        required: false
+        type: string
+        default: ""
+      test_duration:
+        description: "Test duration in seconds per run. Leave empty to use per-scenario defaults (latency: 20s, throughput: 60s)."
+        required: false
+        type: string
+        default: ""
+      draft:
+        description: "Open the results PR as a draft."
+        required: false
+        type: boolean
+        default: true
+      pr_title:
+        description: "PR title. Leave empty to auto-generate (\"Benchmark results: vX.Y.Z\")."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -33,6 +58,9 @@ jobs:
     with:
       lavinmq_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
     secrets: inherit
 
   throughput:
@@ -42,6 +70,9 @@ jobs:
     with:
       lavinmq_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
     secrets: inherit
 
   # --------------------------------------------------------------------------
@@ -126,10 +157,10 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           add-paths: results/
-          draft: true # Temporary draft status
+          draft: ${{ inputs.draft }}
           branch: results/v${{ inputs.lavinmq_version }}
           base: main
-          title: "Benchmark results: v${{ inputs.lavinmq_version }}"
+          title: "${{ inputs.pr_title || format('Benchmark results: v{0}', inputs.lavinmq_version) }}"
           commit-message: "Add ${{ inputs.scenarios }} benchmark results for v${{ inputs.lavinmq_version }} [run ${{ github.run_id }}]"
           body: |
             Automated benchmark results for LavinMQ **v${{ inputs.lavinmq_version }}**.
