@@ -169,15 +169,20 @@ jobs:
           LG=$(terraform output -state="${{ env.state_file }}" -raw load_generator_public_dns)
           scp -o StrictHostKeyChecking=accept-new \
               -o UserKnownHostsFile=/tmp/known-hosts-latency-${{ env.broker_safe }} \
-              ubuntu@${LG}:/home/ubuntu/latency_results.md \
-              "${{ github.workspace }}/${{ env.broker_safe }}_latency.md"
+              ubuntu@${LG}:/home/ubuntu/latency_results.csv \
+              ubuntu@${LG}:/home/ubuntu/latency_results.json \
+              "${{ github.workspace }}/"
+          mv "${{ github.workspace }}/latency_results.csv" "${{ github.workspace }}/${{ env.broker_safe }}_latency.csv"
+          mv "${{ github.workspace }}/latency_results.json" "${{ github.workspace }}/${{ env.broker_safe }}_latency.json"
 
       - name: Upload artifact
         if: steps.apply.outcome == 'success' && steps.download.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: latency-${{ matrix.broker }}
-          path: ${{ env.broker_safe }}_latency.md
+          path: |
+            ${{ env.broker_safe }}_latency.csv
+            ${{ env.broker_safe }}_latency.json
           if-no-files-found: error
 
       - name: Terraform destroy
