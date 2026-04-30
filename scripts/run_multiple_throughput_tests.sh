@@ -18,7 +18,8 @@ SIZES="${2:-16,64,256,512,1024}"  # Default sizes if not provided
 DURATION="${3:-120}"  # Default duration 120 seconds if not provided
 BROKER_INSTANCE_TYPE="${4:-unknown}"  # Broker instance type for reporting
 NUM_RUNS="${5:-${BENCHMARK_NUM_RUNS:-1}}"  # Number of runs per size, default 1
-OUTPUT_FILE="/home/ubuntu/throughput_results.md"
+OUTPUT_CSV="/home/ubuntu/throughput_results.csv"
+OUTPUT_JSON="/home/ubuntu/throughput_results.json"
 TEMP_CSV="/tmp/throughput_results.csv"
 QUEUE_NAME="perf-test"
 
@@ -51,12 +52,13 @@ echo "LavinMQ Version: $LAVINMQ_VERSION"
 echo "Message Sizes: $SIZES"
 echo "Test Duration: $DURATION seconds"
 echo "Number of Runs: $NUM_RUNS"
-echo "Output File: $OUTPUT_FILE"
+echo "Output CSV:  $OUTPUT_CSV"
+echo "Output JSON: $OUTPUT_JSON"
 echo "=========================================="
 echo ""
 
 # Initialize CSV temp file
-echo "Run,Size,Pub_Rate,Con_Rate,Pub_BW,Con_BW" > "$TEMP_CSV"
+echo "Run,Size,PubRate,ConRate,PubBW,ConBW" > "$TEMP_CSV"
 
 # Convert comma-separated sizes to array
 IFS=',' read -ra SIZE_ARRAY <<< "$SIZES"
@@ -121,88 +123,32 @@ echo "All tests completed!"
 echo "=========================================="
 echo ""
 
-# Generate markdown table
-echo "Generating markdown summary..."
+# Move temp CSV to final output location
+mv "$TEMP_CSV" "$OUTPUT_CSV"
 
-{
-  echo "# LavinMQ Throughput Test Results"
-  echo ""
-  echo "Test Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-  echo "Broker Instance Type: $BROKER_INSTANCE_TYPE"
-  echo "LavinMQ Version: $LAVINMQ_VERSION"
-  echo ""
-  echo "## Results"
-  echo ""
-  echo "- Size: (bytes)"
-  echo "- Average publish/consume rates: (msgs/s)"
-  echo "- Publish/Consume bandwidth: (MiB/s)"
-  echo ""
+echo "Results saved to: $OUTPUT_CSV"
 
-  if [ "$NUM_RUNS" -eq 1 ]; then
-    # Single run: emit the same table format as before
-    echo "|  Size | Avg. Publish Rate | Avg. Consume Rate |  Publish BW |  Consume BW |"
-    echo "|------:|------------------:|------------------:|------------:|------------:|"
-    tail -n +2 "$TEMP_CSV" | while IFS=',' read -r run size pub_rate con_rate pub_bw con_bw; do
-      formatted_pub=$(format_number "$pub_rate")
-      formatted_con=$(format_number "$con_rate")
-      printf "| %5s | %17s | %17s | %11s | %11s |\n" "$size" "$formatted_pub" "$formatted_con" "$pub_bw" "$con_bw"
-    done
-  else
-    # Multiple runs: one table per run, then a summary table
-    for RUN in $(seq 1 "$NUM_RUNS"); do
-      echo "### Run $RUN of $NUM_RUNS"
-      echo ""
-      echo "|  Size | Avg. Publish Rate | Avg. Consume Rate |  Publish BW |  Consume BW |"
-      echo "|------:|------------------:|------------------:|------------:|------------:|"
-      grep "^$RUN," "$TEMP_CSV" | while IFS=',' read -r run size pub_rate con_rate pub_bw con_bw; do
-        formatted_pub=$(format_number "$pub_rate")
-        formatted_con=$(format_number "$con_rate")
-        printf "| %5s | %17s | %17s | %11s | %11s |\n" "$size" "$formatted_pub" "$formatted_con" "$pub_bw" "$con_bw"
-      done
-      echo ""
-    done
+# Write JSON config
+echo "Writing JSON config..."
 
-    # Summary table: median publish and consume rate per size (robust against single-run spikes)
-    echo "### Summary (${NUM_RUNS} runs)"
-    echo ""
-    echo "|  Size | Avg. Publish Rate | Avg. Consume Rate |  Publish BW |  Consume BW |"
-    echo "|------:|------------------:|------------------:|------------:|------------:|"
-    for SIZE in "${SIZE_ARRAY[@]}"; do
-      MED_PUB=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$3} END {asort(vals); m=int(n/2)+1; printf "%d", vals[m]}' "$TEMP_CSV")
-      MED_CON=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$4} END {asort(vals); m=int(n/2)+1; printf "%d", vals[m]}' "$TEMP_CSV")
-      MED_PUB_BW=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$5} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$TEMP_CSV")
-      MED_CON_BW=$(awk -F',' -v s="$SIZE" '$2 == s {vals[++n]=$6} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$TEMP_CSV")
+SIZES_JSON=$(printf '%s' "$SIZES" | tr ',' '\n' | awk 'BEGIN{printf "["} NR>1{printf ","} {printf "%s",$1} END{printf "]"}')
 
-      printf "| %5s | %17s | %17s | %11s | %11s |\n" \
-        "$SIZE" \
-        "$(format_number "$MED_PUB")" \
-        "$(format_number "$MED_CON")" \
-        "$MED_PUB_BW" \
-        "$MED_CON_BW"
-    done
-  fi
+printf '{\n  "instance_type": "%s",\n  "lavinmq_version": "%s",\n  "duration": %s,\n  "producers": 1,\n  "consumers": 1,\n  "runs": %s,\n  "queue": "%s",\n  "sizes": %s\n}' \
+  "$BROKER_INSTANCE_TYPE" \
+  "$LAVINMQ_VERSION" \
+  "$DURATION" \
+  "$NUM_RUNS" \
+  "$QUEUE_NAME" \
+  "$SIZES_JSON" \
+  > "$OUTPUT_JSON"
 
-  echo ""
-  echo "## Test Configuration"
-  echo ""
-  echo "- Duration: $DURATION seconds (\`-z $DURATION\`)"
-  echo "- Producers: 1 (\`-x 1\`)"
-  echo "- Consumers: 1 (\`-y 1\`)"
-  echo "- Runs per size: $NUM_RUNS"
-  echo "- Message sizes: $SIZES bytes"
-  echo "- Queue: $QUEUE_NAME"
-  echo ""
-} > "$OUTPUT_FILE"
-
-echo "Results saved to: $OUTPUT_FILE"
+echo "Config saved to: $OUTPUT_JSON"
 echo ""
 echo "=========================================="
 echo "Summary:"
 echo "=========================================="
-cat "$OUTPUT_FILE"
+echo "CSV:  $OUTPUT_CSV"
+echo "JSON: $OUTPUT_JSON"
 echo "=========================================="
-
-# Cleanup temp file
-rm -f "$TEMP_CSV"
 
 exit 0

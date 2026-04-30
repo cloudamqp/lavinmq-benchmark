@@ -112,7 +112,7 @@ jobs:
 
       - name: Check that at least one artifact was downloaded
         run: |
-          if [ -z "$(find raw-results -name '*.md' 2>/dev/null)" ]; then
+          if [ -z "$(find raw-results -name '*.csv' 2>/dev/null)" ]; then
             echo "No result files found – all benchmark jobs failed. Skipping PR."
             echo "has_results=false" >> "$GITHUB_ENV"
           else

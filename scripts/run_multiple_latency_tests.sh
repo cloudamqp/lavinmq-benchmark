@@ -21,7 +21,8 @@ DURATION="${4:-120}"  # Default duration 120 seconds if not provided
 BROKER_INSTANCE_TYPE="${5:-unknown}"  # Broker instance type for reporting
 NUM_RUNS="${6:-${BENCHMARK_NUM_RUNS:-1}}"  # Number of runs per combination, default 1
 PER_SIZE_RATE_LIMITS="${7:-}"              # Optional per-size rate limits, format: "size1:r1,r2|size2:r1,r2"
-OUTPUT_FILE="/home/ubuntu/latency_results.md"
+OUTPUT_CSV="/home/ubuntu/latency_results.csv"
+OUTPUT_JSON="/home/ubuntu/latency_results.json"
 TEMP_DIR="/tmp/latency_test_$$"
 QUEUE_NAME="perf-test"
 
@@ -59,7 +60,8 @@ echo "Rate Limits: $RATE_LIMITS msgs/s"
 echo "Per-Size Rate Limits: ${PER_SIZE_RATE_LIMITS:-(using global rate limits)}"
 echo "Test Duration: $DURATION seconds"
 echo "Number of Runs: $NUM_RUNS"
-echo "Output File: $OUTPUT_FILE"
+echo "Output CSV:  $OUTPUT_CSV"
+echo "Output JSON: $OUTPUT_JSON"
 echo "=========================================="
 echo ""
 
@@ -185,115 +187,59 @@ echo "All tests completed!"
 echo "=========================================="
 echo ""
 
-# Generate markdown report
-echo "Generating markdown summary..."
+# Merge per-size CSVs into single output CSV
+echo "Generating CSV output..."
 
-{
-  echo "# $BROKER_INSTANCE_TYPE"
-  echo ""
-  echo "## Test Configuration"
-  echo ""
-  echo "- Duration: $DURATION seconds (\`-z $DURATION\`)"
-  echo "- Producers: 1 (\`-x 1\`)"
-  echo "- Consumers: 1 (\`-y 1\`)"
-  echo "- Runs per combination: $NUM_RUNS"
-  echo "- Message sizes: $SIZES bytes"
-  echo "- Rate limits: $RATE_LIMITS msgs/s"
-  if [ -n "$PER_SIZE_RATE_LIMITS" ]; then
-    echo "- Per-size rate limits override:"
-    IFS='|' read -ra _PAIRS <<< "$PER_SIZE_RATE_LIMITS"
-    for _PAIR in "${_PAIRS[@]}"; do
-      echo "  - ${_PAIR%%:*} bytes: ${_PAIR#*:} msgs/s"
-    done
-  fi
-  echo "- Queue: $QUEUE_NAME"
-  echo "- Latency measurement: Enabled (\`--measure-latency\`)"
-  echo ""
-  echo "## Units"
-  echo ""
-  echo "- Rate limits: (msgs/s)"
-  echo "- Latency [min, median, P75, P95, P99]: (ms)"
-  echo "- Publish rate: (msgs/s)"
-  echo "- Publish/consume bandwidth: (MiB/s)"
-  echo ""
+echo "Run,Size,RateLimit,Min,Median,P75,P95,P99,PubRate,PubBW,ConBW" > "$OUTPUT_CSV"
+for SIZE in "${SIZE_ARRAY[@]}"; do
+  SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
+  # Insert Size column (position 2) into each data row: Run,RateLimit,... -> Run,Size,RateLimit,...
+  tail -n +2 "$SIZE_CSV" | awk -v size="$SIZE" -F',' 'BEGIN{OFS=","} {print $1,size,$2,$3,$4,$5,$6,$7,$8,$9,$10}' >> "$OUTPUT_CSV"
+done
 
-  # Generate a table for each message size
-  for SIZE in "${SIZE_ARRAY[@]}"; do
-    SIZE_CSV="$TEMP_DIR/size_${SIZE}.csv"
+echo "Results saved to: $OUTPUT_CSV"
 
-    echo "## Message Size: $SIZE bytes"
-    echo ""
+# Write JSON config
+echo "Writing JSON config..."
 
-    if [ "$NUM_RUNS" -eq 1 ]; then
-      echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
-      echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
+# Build JSON arrays from comma-separated strings
+SIZES_JSON=$(printf '%s' "$SIZES" | tr ',' '\n' | awk 'BEGIN{printf "["} NR>1{printf ","} {printf "%s",$1} END{printf "]"}')
+RATE_LIMITS_JSON=$(printf '%s' "$RATE_LIMITS" | tr ',' '\n' | awk 'BEGIN{printf "["} NR>1{printf ","} {printf "%s",$1} END{printf "]"}')
 
-      # Read CSV and format as markdown table (skip header row, skip Run column)
-      tail -n +2 "$SIZE_CSV" | while IFS=',' read -r run rate min_lat median_lat p75_lat p95_lat p99_lat pub_rate pub_bw con_bw; do
-        formatted_rate=$(format_number "$rate")
-        formatted_pub_rate=$(format_number "$pub_rate")
-        [[ "$pub_bw" =~ ^\. ]] && pub_bw="0$pub_bw"
-        [[ "$con_bw" =~ ^\. ]] && con_bw="0$con_bw"
-        printf "| %10s | %7s | %7s | %7s | %7s | %8s | %9s | %8s | %8s |\n" \
-          "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$formatted_pub_rate" "$pub_bw" "$con_bw"
-      done
-    else
-      # Per-run tables
-      for RUN in $(seq 1 "$NUM_RUNS"); do
-        echo "### Run $RUN of $NUM_RUNS ($SIZE)"
-        echo ""
-        echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
-        echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
-
-        awk -F',' -v run="$RUN" '$1 == run' "$SIZE_CSV" | while IFS=',' read -r run rate min_lat median_lat p75_lat p95_lat p99_lat pub_rate pub_bw con_bw; do
-          formatted_rate=$(format_number "$rate")
-          formatted_pub_rate=$(format_number "$pub_rate")
-          [[ "$pub_bw" =~ ^\. ]] && pub_bw="0$pub_bw"
-          [[ "$con_bw" =~ ^\. ]] && con_bw="0$con_bw"
-          printf "| %10s | %7s | %7s | %7s | %7s | %8s | %9s | %8s | %8s |\n" \
-            "$formatted_rate" "$min_lat" "$median_lat" "$p75_lat" "$p95_lat" "$p99_lat" "$formatted_pub_rate" "$pub_bw" "$con_bw"
-        done
-        echo ""
-      done
-
-      # Summary table (median across runs per rate — robust against single-run spikes)
-      echo "### Summary ($NUM_RUNS runs, $SIZE)"
-      echo ""
-      echo "| Rate Limit |     Min |  Median |     P75 |     P95 |      P99 | Pub. Rate |  Pub. BW |  Con. BW |"
-      echo "|-----------:|--------:|--------:|--------:|--------:|---------:|----------:|---------:|---------:|"
-
-      RATES_STR="${SIZE_RATE_MAP[$SIZE]:-$RATE_LIMITS}"
-      IFS=',' read -ra RATES_THIS_SIZE <<< "$RATES_STR"
-      for RATE in "${RATES_THIS_SIZE[@]}"; do
-        MED_MIN=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$3} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_MEDIAN=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$4} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_P75=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$5} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_P95=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$6} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_P99=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$7} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_PUB_RATE=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$8} END {asort(vals); m=int(n/2)+1; printf "%d", vals[m]}' "$SIZE_CSV")
-        MED_PUB_BW=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$9} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-        MED_CON_BW=$(awk -F',' -v r="$RATE" '$2 == r {vals[++n]=$10} END {asort(vals); m=int(n/2)+1; printf "%.2f", vals[m]}' "$SIZE_CSV")
-
-        formatted_rate=$(format_number "$RATE")
-        formatted_pub_rate=$(format_number "$MED_PUB_RATE")
-        [[ "$MED_PUB_BW" =~ ^\. ]] && MED_PUB_BW="0$MED_PUB_BW"
-        [[ "$MED_CON_BW" =~ ^\. ]] && MED_CON_BW="0$MED_CON_BW"
-        printf "| %10s | %7s | %7s | %7s | %7s | %8s | %9s | %8s | %8s |\n" \
-          "$formatted_rate" "$MED_MIN" "$MED_MEDIAN" "$MED_P75" "$MED_P95" "$MED_P99" "$formatted_pub_rate" "$MED_PUB_BW" "$MED_CON_BW"
-      done
-    fi
-
-    echo ""
+# Build per_size_rate_limits JSON object
+PSRL_JSON="{"
+if [ -n "$PER_SIZE_RATE_LIMITS" ]; then
+  _FIRST=1
+  IFS='|' read -ra _PSRL_PAIRS <<< "$PER_SIZE_RATE_LIMITS"
+  for _PAIR in "${_PSRL_PAIRS[@]}"; do
+    _SZ="${_PAIR%%:*}"
+    _RT="${_PAIR#*:}"
+    _RT_JSON=$(printf '%s' "$_RT" | tr ',' '\n' | awk 'BEGIN{printf "["} NR>1{printf ","} {printf "%s",$1} END{printf "]"}')
+    [ "$_FIRST" -eq 0 ] && PSRL_JSON="${PSRL_JSON},"
+    PSRL_JSON="${PSRL_JSON}\"${_SZ}\":${_RT_JSON}"
+    _FIRST=0
   done
+fi
+PSRL_JSON="${PSRL_JSON}}"
 
-} > "$OUTPUT_FILE"
+printf '{\n  "instance_type": "%s",\n  "lavinmq_version": "%s",\n  "duration": %s,\n  "producers": 1,\n  "consumers": 1,\n  "runs": %s,\n  "queue": "%s",\n  "sizes": %s,\n  "rate_limits": %s,\n  "per_size_rate_limits": %s\n}' \
+  "$BROKER_INSTANCE_TYPE" \
+  "$LAVINMQ_VERSION" \
+  "$DURATION" \
+  "$NUM_RUNS" \
+  "$QUEUE_NAME" \
+  "$SIZES_JSON" \
+  "$RATE_LIMITS_JSON" \
+  "$PSRL_JSON" \
+  > "$OUTPUT_JSON"
 
-echo "Results saved to: $OUTPUT_FILE"
+echo "Config saved to: $OUTPUT_JSON"
 echo ""
 echo "=========================================="
 echo "Summary:"
 echo "=========================================="
-cat "$OUTPUT_FILE"
+echo "CSV:  $OUTPUT_CSV"
+echo "JSON: $OUTPUT_JSON"
 echo "=========================================="
 
 # Cleanup temp files
