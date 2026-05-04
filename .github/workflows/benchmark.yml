@@ -16,6 +16,7 @@ on:
           - all
           - latency
           - throughput
+          - mqtt-throughput
       brokers:
         description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
         required: false
@@ -75,18 +76,31 @@ jobs:
       test_duration: ${{ inputs.test_duration }}
     secrets: inherit
 
+  mqtt_throughput:
+    name: "MQTT Throughput"
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'mqtt-throughput'
+    uses: ./.github/workflows/benchmark-mqtt-throughput.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version }}
+      brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
+    secrets: inherit
+
   # --------------------------------------------------------------------------
   # AGGREGATE & PR
   # --------------------------------------------------------------------------
   aggregate:
     name: "Aggregate results & open PR"
-    needs: [latency, throughput]
+    needs: [latency, throughput, mqtt_throughput]
     # Run if at least one scenario finished (not cancelled, not skipped due to
     # scenario selection), even if some matrix jobs within it failed.
     if: |
       always() && !cancelled() &&
       (needs.latency.result == 'success' || needs.latency.result == 'failure' ||
-       needs.throughput.result == 'success' || needs.throughput.result == 'failure')
+       needs.throughput.result == 'success' || needs.throughput.result == 'failure' ||
+       needs.mqtt_throughput.result == 'success' || needs.mqtt_throughput.result == 'failure')
     runs-on: ubuntu-latest
 
     steps:
@@ -108,6 +122,14 @@ jobs:
         with:
           pattern: throughput-*
           path: raw-results/throughput
+          merge-multiple: false
+
+      - name: Download MQTT throughput artifacts
+        if: needs.mqtt_throughput.result == 'success' || needs.mqtt_throughput.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mqtt-throughput-*
+          path: raw-results/mqtt-throughput
           merge-multiple: false
 
       - name: Check that at least one artifact was downloaded
@@ -137,9 +159,10 @@ jobs:
         run: |
           python scripts/aggregate_results.py \
             --version "${{ inputs.lavinmq_version }}" \
-            --latency-dir    raw-results/latency \
-            --throughput-dir raw-results/throughput \
-            --output-dir     results
+            --latency-dir         raw-results/latency \
+            --throughput-dir      raw-results/throughput \
+            --mqtt-throughput-dir raw-results/mqtt-throughput \
+            --output-dir          results
 
       - name: Configure git
         if: env.has_results == 'true'
@@ -175,7 +198,7 @@ jobs:
   # --------------------------------------------------------------------------
   summary:
     name: "Workflow summary"
-    needs: [latency, throughput, aggregate]
+    needs: [latency, throughput, mqtt_throughput, aggregate]
     if: always()
     runs-on: ubuntu-latest
 
@@ -192,6 +215,7 @@ jobs:
           | Scenarios | \`${{ inputs.scenarios }}\` |
           | Latency jobs | ${{ needs.latency.result || 'skipped' }} |
           | Throughput jobs | ${{ needs.throughput.result || 'skipped' }} |
+          | MQTT Throughput jobs | ${{ needs.mqtt_throughput.result || 'skipped' }} |
           | Aggregate & PR | ${{ needs.aggregate.result }} |
 
           **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
