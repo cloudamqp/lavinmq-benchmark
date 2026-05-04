@@ -159,8 +159,3 @@ output "scp_download_results_command" {
   description = "Commands to download the results files using SCP"
   value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:'/home/ubuntu/mqtt_throughput_results.csv /home/ubuntu/mqtt_throughput_results.json' .", module.load_generator.public_dns)
 }
-
-output "scp_download_results_command" {
-  description = "Command to download the results file using SCP"
-  value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:/home/ubuntu/mqtt_throughput_results.md ./mqtt_throughput_results.md", module.load_generator.public_dns)
-}
