@@ -1,0 +1,10 @@
+{
+  "instance_type": "c8g.large",
+  "lavinmq_version": "2.7.0-rc.3",
+  "duration": 60,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 3,
+  "queue": "perf-test",
+  "sizes": [16,64]
+}
