@@ -326,15 +326,82 @@ def build_throughput_summary(parsed: dict, version: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# MQTT Throughput summary builder
+# ---------------------------------------------------------------------------
+
+def build_mqtt_throughput_summary(parsed: dict, version: str) -> str:
+    all_sizes: list[int] = sorted({
+        s for p in parsed.values() for s in p["data"]
+    })
+
+    lines = []
+    lines.append("# LavinMQ MQTT Throughput Results\n")
+    lines.append("## Benchmark Setup\n")
+    lines.append(
+        "- Network (VPC, internet gateway, subnet, route table, route table associated, ingress rule)\n"
+        "- Benchmark-broker (AWS instance, public IP)\n"
+        "- Benchmark-loadgen (AWS instance, public IP)\n"
+        "\nLoad generator -> MQTT-URL (broker private IP) -> Broker\n"
+    )
+    lines.append("## Table Headers\n")
+    lines.append(
+        "- **Size**: Message size in bytes\n"
+        "- **Avg. Publish Rate**: Average publish rate in msgs/s\n"
+        "- **Avg. Consume Rate**: Average consume rate in msgs/s\n"
+        "- **Publish BW**: Publish bandwidth in MiB/s\n"
+        "- **Consume BW**: Consume bandwidth in MiB/s\n"
+    )
+    lines.append("## AWS Instance Types\n")
+    duration = next(iter(parsed.values()), {}).get("duration", "60")
+    lines.append(f"Benchmark results for AWS instance types with LavinMQ version v{version}.\n")
+    lines.append("```shell")
+    lines.append(f"mqtt_bench.sh throughput -z {duration} -x 1 -y 1 -s <size>")
+    lines.append("```\n")
+
+    header_row = "| {:>5} | {:>17} | {:>17} | {:>11} | {:>11} |".format(
+        "Size", "Avg. Publish Rate", "Avg. Consume Rate", "Publish BW", "Consume BW"
+    )
+    sep_row = "|------:|------------------:|------------------:|------------:|------------:|"
+
+    for group_name, slugs in INSTANCE_GROUPS:
+        group_instances = [(s, parsed[s]) for s in slugs if s in parsed]
+        if not group_instances:
+            continue
+        lines.append(f"### {group_name}\n")
+        for slug, p in group_instances:
+            display, desc = INSTANCE_META.get(slug, (slug, ""))
+            lines.append(f"**{display}** - {desc}\n")
+            lines.append(header_row)
+            lines.append(sep_row)
+            for size in all_sizes:
+                row = p["data"].get(size)
+                if not row:
+                    continue
+                lines.append(
+                    "| {:>5} | {:>17} | {:>17} | {:>11} | {:>11} |".format(
+                        size,
+                        fmt_num(row["pub_rate"]),
+                        fmt_num(row["con_rate"]),
+                        fmt_float(row["pub_bw"]),
+                        fmt_float(row["con_bw"]),
+                    )
+                )
+            lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Aggregate LavinMQ benchmark results.")
-    parser.add_argument("--version",        required=True,  help="LavinMQ version, e.g. 2.7.0-rc.3")
-    parser.add_argument("--latency-dir",    default=None,   help="Directory containing per-instance *_latency.csv files (with matching *_latency.json)")
-    parser.add_argument("--throughput-dir", default=None,   help="Directory containing per-instance *_throughput.csv files (with matching *_throughput.json)")
-    parser.add_argument("--output-dir",     required=True,  help="Root results directory (e.g. results/)")
+    parser.add_argument("--version",              required=True,  help="LavinMQ version, e.g. 2.7.0-rc.3")
+    parser.add_argument("--latency-dir",          default=None,   help="Directory containing per-instance *_latency.csv files (with matching *_latency.json)")
+    parser.add_argument("--throughput-dir",       default=None,   help="Directory containing per-instance *_throughput.csv files (with matching *_throughput.json)")
+    parser.add_argument("--mqtt-throughput-dir",  default=None,   help="Directory containing per-instance *_mqtt_throughput.csv files (with matching *_mqtt_throughput.json)")
+    parser.add_argument("--output-dir",           required=True,  help="Root results directory (e.g. results/)")
     args = parser.parse_args()
 
     version = args.version.lstrip("v")
@@ -419,6 +486,44 @@ def main() -> None:
                 print(f"  Written: {out_path}")
         else:
             print(f"  No throughput files found in {throughput_dir}")
+
+    # ---- MQTT Throughput ---------------------------------------------------
+    if args.mqtt_throughput_dir and Path(args.mqtt_throughput_dir).is_dir():
+        mqtt_throughput_dir = Path(args.mqtt_throughput_dir)
+        mqtt_throughput_files = sorted(mqtt_throughput_dir.glob("**/*_mqtt_throughput.csv"))
+        if mqtt_throughput_files:
+            out_mqtt_throughput = out_root / "mqtt_throughput"
+            out_mqtt_throughput.mkdir(parents=True, exist_ok=True)
+
+            parsed_mqtt_throughput: dict = {}
+            for f in mqtt_throughput_files:
+                slug = slug_from_filename(f, "_mqtt_throughput")
+                print(f"  Parsing MQTT throughput: {f.name} -> slug={slug}")
+                shutil.copy2(f, out_mqtt_throughput / f"{slug}_mqtt_throughput.csv")
+                json_src = f.with_suffix(".json")
+                if json_src.exists():
+                    shutil.copy2(json_src, out_mqtt_throughput / f"{slug}_mqtt_throughput.json")
+                try:
+                    parsed_mqtt_throughput[slug] = parse_throughput_files(f, json_src)
+                except Exception as e:
+                    print(f"  WARNING: failed to parse {f}: {e}")
+
+            for existing_f in sorted(out_mqtt_throughput.glob("*_mqtt_throughput.csv")):
+                slug = slug_from_filename(existing_f, "_mqtt_throughput")
+                if slug not in parsed_mqtt_throughput:
+                    print(f"  Including existing: {existing_f.name} -> slug={slug}")
+                    try:
+                        parsed_mqtt_throughput[slug] = parse_throughput_files(existing_f, existing_f.with_suffix(".json"))
+                    except Exception as e:
+                        print(f"  WARNING: failed to parse existing {existing_f}: {e}")
+
+            if parsed_mqtt_throughput:
+                summary = build_mqtt_throughput_summary(parsed_mqtt_throughput, version)
+                out_path = out_root / "mqtt_throughput.md"
+                out_path.write_text(summary)
+                print(f"  Written: {out_path}")
+        else:
+            print(f"  No MQTT throughput files found in {mqtt_throughput_dir}")
 
     print("Aggregation complete.")
 
