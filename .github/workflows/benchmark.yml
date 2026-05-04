@@ -146,10 +146,20 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Compute results path
+        if: env.has_results == 'true'
+        run: |
+          VERSION="${{ inputs.lavinmq_version }}"
+          if echo "$VERSION" | grep -qE '-(rc|beta)\.'; then
+            echo "RESULTS_SUBDIR=pre-release/v${VERSION}" >> "$GITHUB_ENV"
+          else
+            echo "RESULTS_SUBDIR=v${VERSION}" >> "$GITHUB_ENV"
+          fi
+
       - name: Restore existing results from PR branch
         if: env.has_results == 'true'
         run: |
-          BRANCH="results/v${{ inputs.lavinmq_version }}"
+          BRANCH="results/${{ env.RESULTS_SUBDIR }}"
           if git fetch origin "${BRANCH}" 2>/dev/null; then
             git checkout "origin/${BRANCH}" -- results/ 2>/dev/null || true
           fi
@@ -181,7 +191,7 @@ jobs:
           token: ${{ secrets.PAT }}
           add-paths: results/
           draft: ${{ inputs.draft }}
-          branch: results/v${{ inputs.lavinmq_version }}
+          branch: results/${{ env.RESULTS_SUBDIR }}
           base: main
           title: "${{ inputs.pr_title || format('Benchmark results: v{0}', inputs.lavinmq_version) }}"
           commit-message: "Add ${{ inputs.scenarios }} benchmark results for v${{ inputs.lavinmq_version }} [run ${{ github.run_id }}]"
@@ -191,7 +201,7 @@ jobs:
             Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             Scenarios: `${{ inputs.scenarios }}`
 
-            Results are in `results/v${{ inputs.lavinmq_version }}/`. Additional scenarios can be added to this PR by triggering new runs with the same version.
+            Results are in `results/${{ env.RESULTS_SUBDIR }}/`. Additional scenarios can be added to this PR by triggering new runs with the same version.
 
   # --------------------------------------------------------------------------
   # SUMMARY

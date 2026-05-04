@@ -405,7 +405,11 @@ def main() -> None:
     args = parser.parse_args()
 
     version = args.version.lstrip("v")
-    out_root = Path(args.output_dir) / f"v{version}"
+    is_prerelease = bool(re.search(r"-(rc|beta)\.", version))
+    if is_prerelease:
+        out_root = Path(args.output_dir) / "pre-release" / f"v{version}"
+    else:
+        out_root = Path(args.output_dir) / f"v{version}"
 
     # ---- Latency -----------------------------------------------------------
     if args.latency_dir and Path(args.latency_dir).is_dir():
