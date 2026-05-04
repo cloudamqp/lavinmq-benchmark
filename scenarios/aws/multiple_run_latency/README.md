@@ -1,7 +1,7 @@
 # Multiple Run Latency Benchmark
 
 This scenario runs multiple sequential latency tests with different message sizes and rate limits against a LavinMQ
-broker instance, automatically collecting and summarizing the results in markdown tables.
+broker instance, automatically collecting raw results as CSV/JSON and computing aggregated (median) summaries.
 
 ## What It Does
 
@@ -18,9 +18,9 @@ broker instance, automatically collecting and summarizing the results in markdow
        - Captures latency percentiles (min, median, p75, p95, p99) and bandwidth
 
 3. **Generates Results**:
-   - Creates one markdown table per message size showing latency metrics across rate limits
-   - Stores results on the load generator instance at `/home/ubuntu/latency_results.md`
-   - Displays results in Terraform output
+   - Raw per-run results saved as CSV at `/home/ubuntu/latency_results.csv`
+   - Test configuration saved as JSON at `/home/ubuntu/latency_results.json`
+   - Aggregated (median) summaries are computed by `scripts/aggregate_results.py`
 
 ## Prerequisites
 
@@ -142,82 +142,78 @@ dotenv terraform apply -var="test_duration=60"
 After successful completion, Terraform provides:
 
 ```console
-broker_public_dns = "ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
-load_generator_public_dns = "ec2-yy-yy-yy-yy.compute-1.amazonaws.com"
-results_file_path = "/home/ubuntu/latency_results.md"
-ssh_view_results_command = "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com 'cat /home/ubuntu/latency_results.md'"
-scp_download_results_command = "scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com:/home/ubuntu/latency_results.md ./latency_results.md"
+broker_public_dns            = "ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
+load_generator_public_dns    = "ec2-yy-yy-yy-yy.compute-1.amazonaws.com"
+results_file_path            = "/home/ubuntu/latency_results.csv"
+results_config_path          = "/home/ubuntu/latency_results.json"
+ssh_view_results_command     = "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com 'cat /home/ubuntu/latency_results.csv'"
+scp_download_results_command = "scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com:'/home/ubuntu/latency_results.csv /home/ubuntu/latency_results.json' ."
 ```
 
-## Viewing Results
+## Viewing / Downloading Results
 
-### View results remotely via SSH
-
-Use the provided command from outputs:
+### View CSV remotely via SSH
 
 ```bash
-ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns> 'cat /home/ubuntu/latency_results.md'
+ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts \
+  ubuntu@<load-generator-dns> 'cat /home/ubuntu/latency_results.csv'
 ```
 
-### Download results to local machine
+### Download both result files
 
 ```bash
-scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns>:/home/ubuntu/latency_results.md ./results.md
+scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts \
+  ubuntu@<load-generator-dns>:'/home/ubuntu/latency_results.csv /home/ubuntu/latency_results.json' .
 ```
 
-## Example Output
+### Aggregate results locally
 
-The generated markdown file will look like this (example results):
+After downloading, run the aggregation script to compute median values across runs and produce the summary markdown:
 
-```markdown
-# LavinMQ Latency Test Results
-
-Test Date: 2026-02-23 14:30:00 UTC
-Broker Instance Type: c8g.large
-LavinMQ Version: 2.5.0
-
-## Message Size: 16 bytes
-
-*Latency (min, median, p75, p95, p99) in milliseconds. Bandwidth (Pub. BW, Con. BW) in MiB/s.*
-
-| Rate Limit | Min | Median | P75 | P95 | P99 | Pub. BW | Con. BW |
-|-----------:|----:|-------:|----:|----:|----:|--------:|--------:|
-|         10 | 0.123 |  0.234 | 0.345 | 0.456 | 0.567 |    0.00 |    0.00 |
-|        100 | 0.234 |  0.345 | 0.456 | 0.567 | 0.678 |    0.00 |    0.00 |
-|      1,000 | 0.345 |  0.456 | 0.567 | 0.678 | 0.789 |    0.02 |    0.02 |
-|     10,000 | 0.456 |  0.678 | 0.890 | 1.234 | 2.345 |    0.15 |    0.15 |
-|     50,000 | 1.234 |  2.345 | 3.456 | 4.567 | 5.678 |    0.76 |    0.76 |
-|    100,000 | 2.345 |  3.456 | 4.567 | 5.678 | 6.789 |    1.53 |    1.53 |
-|    200,000 | 3.456 |  4.567 | 5.678 | 6.789 | 7.890 |    3.05 |    3.05 |
-|    500,000 | 5.678 |  7.890 | 9.012 | 12.345 | 15.678 |    7.63 |    7.63 |
-
-## Message Size: 64 bytes
-
-*Latency (min, median, p75, p95, p99) in milliseconds. Bandwidth (Pub. BW, Con. BW) in MiB/s.*
-
-| Rate Limit | Min | Median | P75 | P95 | P99 | Pub. BW | Con. BW |
-|-----------:|----:|-------:|----:|----:|----:|--------:|--------:|
-|         10 | 0.145 |  0.256 | 0.367 | 0.478 | 0.589 |    0.00 |    0.00 |
-|        100 | 0.256 |  0.367 | 0.478 | 0.589 | 0.690 |    0.01 |    0.01 |
-|      1,000 | 0.367 |  0.478 | 0.589 | 0.690 | 0.801 |    0.06 |    0.06 |
-|     10,000 | 0.478 |  0.690 | 0.912 | 1.256 | 2.367 |    0.61 |    0.61 |
-|     50,000 | 1.256 |  2.367 | 3.478 | 4.589 | 5.690 |    3.05 |    3.05 |
-|    100,000 | 2.367 |  3.478 | 4.589 | 5.690 | 6.801 |    6.10 |    6.10 |
-|    200,000 | 3.478 |  4.589 | 5.690 | 6.801 | 7.912 |   12.21 |   12.21 |
-|    500,000 | 5.690 |  7.912 | 9.134 | 12.367 | 15.690 |   30.52 |   30.52 |
-
-## Test Configuration
-
-- Duration: 120 seconds (`-z 120`)
-- Producers: 1 (`-x 1`)
-- Consumers: 1 (`-y 1`)
-- Message sizes: 16,64,256,512,1024 bytes
-- Rate limits: 10,100,1000,10000,50000,100000,200000,500000 msgs/s
-- Queue: perf-test
-- Latency measurement: Enabled (`--measure-latency`)
+```bash
+python scripts/aggregate_results.py \
+  --version 2.7.0 \
+  --latency-dir ./raw-results/latency \
+  --output-dir results
 ```
 
-**Note:** Actual test results are stored at `/home/ubuntu/latency_results.md` on the load generator instance. Use the provided SSH or SCP commands from Terraform outputs to view or download them.
+This writes `results/v2.7.0/latency_P95.md` and `results/v2.7.0/latency_P99.md` and copies the raw CSV/JSON into
+`results/v2.7.0/latency/`.
+
+## Raw Result Format
+
+### CSV (`latency_results.csv`)
+
+```CSV
+Run,Size,RateLimit,Min,Median,P75,P95,P99,PubRate,PubBW,ConBW
+1,16,10,0.12,0.23,0.34,0.45,0.56,10,0.00,0.00
+1,16,100,0.23,0.34,0.45,0.56,0.67,100,0.00,0.00
+...
+```
+
+- **Run**: Run number (1 to `num_runs`)
+- **Size**: Message size in bytes
+- **RateLimit**: Rate limit in msgs/s
+- **Min / Median / P75 / P95 / P99**: Latency percentiles in milliseconds
+- **PubRate**: Achieved publish rate in msgs/s
+- **PubBW** / **ConBW**: Publish / consume bandwidth in MiB/s
+
+### JSON (`latency_results.json`)
+
+```json
+{
+  "instance_type": "c8g.large",
+  "lavinmq_version": "2.7.0",
+  "duration": 20,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 3,
+  "queue": "perf-test",
+  "sizes": [16, 64, 256, 512, 1024, 4096, 16384, 65536],
+  "rate_limits": [10, 100, 1000, 10000, 50000, 100000, 200000, 500000],
+  "per_size_rate_limits": {}
+}
+```
 
 ## Understanding Latency Testing
 

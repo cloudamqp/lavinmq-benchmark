@@ -20,15 +20,23 @@ exact test parameters.
 
 ### [`multiple_run_throughput`](scenarios/aws/multiple_run_throughput/)
 
-Runs sequential throughput tests across a configurable set of message sizes. Produces a markdown
-summary table (publish and consume rates per message size) stored on the load generator and
-displayed as Terraform output.
+Runs sequential AMQP throughput tests across a configurable set of message sizes, repeated N times.
+Produces a CSV file of raw per-run results and a JSON config file on the load generator. Aggregated
+(median) summaries are written to `results/v{version}/throughput.md` by `scripts/aggregate_results.py`.
 
 ### [`multiple_run_latency`](scenarios/aws/multiple_run_latency/)
 
-Runs sequential latency tests across a configurable set of message sizes and rate limits. Produces
-one markdown table per message size showing latency percentiles (min, median, p75, p95, p99) and
-bandwidth, stored on the load generator and displayed as Terraform output.
+Runs sequential AMQP latency tests across a configurable set of message sizes and rate limits,
+repeated N times. Produces a CSV file of raw per-run results and a JSON config file on the load
+generator. Aggregated (median) summaries are written to `results/v{version}/latency_P95.md` and
+`latency_P99.md` by `scripts/aggregate_results.py`.
+
+### [`mqtt_throughput`](scenarios/aws/mqtt_throughput/)
+
+Runs sequential MQTT throughput tests across a configurable set of message sizes, repeated N times.
+Installs `emqtt-bench` and `mqttloader` on the load generator. Produces a CSV file of raw per-run
+results and a JSON config file on the load generator. Aggregated (median) summaries are written to
+`results/v{version}/mqtt_throughput.md` by `scripts/aggregate_results.py`.
 
 ## Configuration
 
@@ -79,7 +87,7 @@ committed to a `results/v{version}` branch.
 **Via the GitHub CLI:**
 
 ```shell
-# Run both latency and throughput benchmarks for all instance types
+# Run all benchmarks (AMQP throughput, AMQP latency, MQTT throughput) for all instance types
 gh workflow run benchmark.yml \
   -f lavinmq_version=2.7.0 \
   -f scenarios=all
@@ -89,10 +97,15 @@ gh workflow run benchmark.yml \
   -f lavinmq_version=2.7.0 \
   -f scenarios=latency
 
-# Throughput only
+# AMQP throughput only
 gh workflow run benchmark.yml \
   -f lavinmq_version=2.7.0 \
   -f scenarios=throughput
+
+# MQTT throughput only
+gh workflow run benchmark.yml \
+  -f lavinmq_version=2.7.0 \
+  -f scenarios=mqtt-throughput
 
 # Run from a specific branch (e.g. when testing workflow changes)
 gh workflow run benchmark.yml \
@@ -124,8 +137,8 @@ gh workflow run benchmark.yml \
   -f brokers="c8g.large,t4g.medium"
 ```
 
-The individual `benchmark-latency.yml` and `benchmark-throughput.yml` workflows can also be
-triggered directly in the same way if you want to skip the aggregate/PR step.
+The individual `benchmark-latency.yml`, `benchmark-throughput.yml`, and `benchmark-mqtt-throughput.yml`
+workflows can also be triggered directly in the same way if you want to skip the aggregate/PR step.
 
 ## Logging
 

@@ -1,7 +1,7 @@
 # Multiple Run Throughput Benchmark
 
 This scenario runs multiple sequential throughput tests with different message sizes against a LavinMQ broker instance,
-automatically collecting and summarizing the results in a markdown table.
+automatically collecting raw results as CSV/JSON and computing aggregated (median) summaries.
 
 ## What It Does
 
@@ -17,9 +17,9 @@ automatically collecting and summarizing the results in a markdown table.
      - Captures publish and consume rates
 
 3. **Generates Results**:
-   - Creates a markdown summary table with results for all message sizes
-   - Stores results on the load generator instance at `/home/ubuntu/throughput_results.md`
-   - Displays results in Terraform output
+   - Raw per-run results saved as CSV at `/home/ubuntu/throughput_results.csv`
+   - Test configuration saved as JSON at `/home/ubuntu/throughput_results.json`
+   - Aggregated (median) summaries are computed by `scripts/aggregate_results.py`
 
 ## Prerequisites
 
@@ -128,60 +128,73 @@ dotenv terraform apply -var="test_duration=60"
 After successful completion, Terraform provides:
 
 ```console
-broker_public_dns = "ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
-load_generator_public_dns = "ec2-yy-yy-yy-yy.compute-1.amazonaws.com"
-results_file_path = "/home/ubuntu/throughput_results.md"
-ssh_view_results_command = "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com 'cat /home/ubuntu/throughput_results.md'"
-scp_download_results_command = "scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com:/home/ubuntu/throughput_results.md ./throughput_results.md"
+broker_public_dns            = "ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
+load_generator_public_dns    = "ec2-yy-yy-yy-yy.compute-1.amazonaws.com"
+results_file_path            = "/home/ubuntu/throughput_results.csv"
+results_config_path          = "/home/ubuntu/throughput_results.json"
+ssh_view_results_command     = "ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com 'cat /home/ubuntu/throughput_results.csv'"
+scp_download_results_command = "scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@ec2-yy-yy-yy-yy.compute-1.amazonaws.com:'/home/ubuntu/throughput_results.csv /home/ubuntu/throughput_results.json' ."
 ```
 
-## Viewing Results
+## Viewing / Downloading Results
 
-### View results remotely via SSH
-
-Use the provided command from outputs:
+### View CSV remotely via SSH
 
 ```bash
-ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns> 'cat /home/ubuntu/throughput_results.md'
+ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts \
+  ubuntu@<load-generator-dns> 'cat /home/ubuntu/throughput_results.csv'
 ```
 
-### Download results to local machine
+### Download both result files
 
 ```bash
-scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@<load-generator-dns>:/home/ubuntu/throughput_results.md ./results.md
+scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts \
+  ubuntu@<load-generator-dns>:'/home/ubuntu/throughput_results.csv /home/ubuntu/throughput_results.json' .
 ```
 
-## Example Output
+### Aggregate results locally
 
-The generated markdown file will look like this (example results):
+After downloading, run the aggregation script to compute median values across runs and produce the summary markdown:
 
-```markdown
-# LavinMQ Throughput Test Results
-
-Test Date: 2026-02-23 14:30:00 UTC
-Broker Instance Type: c8g.large
-LavinMQ Version: 2.5.0
-
-## Results
-
-| Size (bytes) | Avg. Pub. Rate (msgs/s) | Avg. Con. Rate (msgs/s) | Pub. Bandwidth (MiB/s) | Con. Bandwidth (MiB/s) |
-|-------------:|------------------------:|------------------------:|-----------------------:|-----------------------:|
-|           16 |               1,234,567 |               1,230,123 |                  18.86 |                  18.79 |
-|           64 |               1,100,000 |               1,098,765 |                  67.14 |                  67.06 |
-|          256 |                 950,000 |                 948,500 |                 232.01 |                 231.65 |
-|          512 |                 800,000 |                 798,900 |                 390.62 |                 389.78 |
-|         1024 |                 650,000 |                 649,000 |                 634.76 |                 633.78 |
-
-## Test Configuration
-
-- Duration: 120 seconds (`-z 120`)
-- Producers: 1 (`-x 1`)
-- Consumers: 1 (`-y 1`)
-- Message sizes: 16,64,256,512,1024 bytes
-- Queue: perf-test
+```bash
+python scripts/aggregate_results.py \
+  --version 2.7.0 \
+  --throughput-dir ./raw-results/throughput \
+  --output-dir results
 ```
 
-**Note:** Actual test results are stored at `/home/ubuntu/throughput_results.md` on the load generator instance. Use the provided SSH or SCP commands from Terraform outputs to view or download them.
+This writes `results/v2.7.0/throughput.md` and copies the raw CSV/JSON into `results/v2.7.0/throughput/`.
+
+## Raw Result Format
+
+### CSV (`throughput_results.csv`)
+
+```CSV
+Run,Size,PubRate,ConRate,PubBW,ConBW
+1,16,1234567,1230123,18.86,18.79
+1,64,1100000,1098765,67.14,67.06
+...
+```
+
+- **Run**: Run number (1 to `num_runs`)
+- **Size**: Message size in bytes
+- **PubRate** / **ConRate**: Publish / consume rate in msgs/s
+- **PubBW** / **ConBW**: Publish / consume bandwidth in MiB/s
+
+### JSON (`throughput_results.json`)
+
+```json
+{
+  "instance_type": "c8g.large",
+  "lavinmq_version": "2.7.0",
+  "duration": 60,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 3,
+  "queue": "perf-test",
+  "sizes": [16, 64, 256, 512, 1024, 4096, 16384, 65536]
+}
+```
 
 ## Test Details
 
