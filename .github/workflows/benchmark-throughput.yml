@@ -159,15 +159,20 @@ jobs:
           LG=$(terraform output -state="${{ env.state_file }}" -raw load_generator_public_dns)
           scp -o StrictHostKeyChecking=accept-new \
               -o UserKnownHostsFile=/tmp/known-hosts-throughput-${{ env.broker_safe }} \
-              ubuntu@${LG}:/home/ubuntu/throughput_results.md \
-              "${{ github.workspace }}/${{ env.broker_safe }}_throughput.md"
+              ubuntu@${LG}:/home/ubuntu/throughput_results.csv \
+              ubuntu@${LG}:/home/ubuntu/throughput_results.json \
+              "${{ github.workspace }}/"
+          mv "${{ github.workspace }}/throughput_results.csv" "${{ github.workspace }}/${{ env.broker_safe }}_throughput.csv"
+          mv "${{ github.workspace }}/throughput_results.json" "${{ github.workspace }}/${{ env.broker_safe }}_throughput.json"
 
       - name: Upload artifact
         if: steps.apply.outcome == 'success' && steps.download.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: throughput-${{ matrix.broker }}
-          path: ${{ env.broker_safe }}_throughput.md
+          path: |
+            ${{ env.broker_safe }}_throughput.csv
+            ${{ env.broker_safe }}_throughput.json
           if-no-files-found: error
 
       - name: Terraform destroy

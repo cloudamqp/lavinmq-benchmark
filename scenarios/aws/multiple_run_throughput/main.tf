@@ -126,16 +126,21 @@ output "load_generator_public_dns" {
 }
 
 output "results_file_path" {
-  description = "Path to the results file on the load generator instance"
-  value       = "/home/ubuntu/throughput_results.md"
+  description = "Path to the results CSV file on the load generator instance"
+  value       = "/home/ubuntu/throughput_results.csv"
+}
+
+output "results_config_path" {
+  description = "Path to the results JSON config file on the load generator instance"
+  value       = "/home/ubuntu/throughput_results.json"
 }
 
 output "ssh_view_results_command" {
   description = "Command to SSH and view the results"
-  value       = format("ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s 'cat /home/ubuntu/throughput_results.md'", module.load_generator.public_dns)
+  value       = format("ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s 'cat /home/ubuntu/throughput_results.csv'", module.load_generator.public_dns)
 }
 
 output "scp_download_results_command" {
-  description = "Command to download the results file using SCP"
-  value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:/home/ubuntu/throughput_results.md ./throughput_results.md", module.load_generator.public_dns)
+  description = "Commands to download the results files using SCP"
+  value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:'/home/ubuntu/throughput_results.csv /home/ubuntu/throughput_results.json' .", module.load_generator.public_dns)
 }

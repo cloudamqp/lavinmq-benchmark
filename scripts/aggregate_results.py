@@ -11,9 +11,12 @@ Usage:
 """
 
 import argparse
+import csv
+import json
 import os
 import re
 import shutil
+import statistics
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -80,13 +83,14 @@ def fmt_float(value: str, decimals: int = 2) -> str:
 # Latency parsing
 # ---------------------------------------------------------------------------
 
-def parse_latency_file(path: Path) -> dict:
+def parse_latency_files(csv_path: Path, json_path: Path) -> dict:
     """
-    Parse a per-instance latency_results.md produced by run_multiple_latency_tests.sh.
+    Parse per-instance latency results from CSV + JSON config files produced
+    by run_multiple_latency_tests.sh.
 
-    Returns:
+    Returns the same dict shape as the former parse_latency_file():
         {
-          "instance_type": str,          # from '# t4g.micro' header
+          "instance_type": str,
           "lavinmq_version": str,
           "duration": str,
           "sizes": [int, ...],
@@ -100,68 +104,35 @@ def parse_latency_file(path: Path) -> dict:
           }
         }
     """
-    text = path.read_text()
-    result = {
-        "instance_type": "",
-        "lavinmq_version": "",
-        "duration": "",
-        "sizes": [],
-        "data": {},
+    with json_path.open() as f:
+        cfg = json.load(f)
+
+    result: dict = {
+        "instance_type":   cfg.get("instance_type", ""),
+        "lavinmq_version": cfg.get("lavinmq_version", ""),
+        "duration":        str(cfg.get("duration", "")),
+        "sizes":           [int(s) for s in cfg.get("sizes", [])],
+        "data":            {},
     }
 
-    # Instance type from first heading
-    m = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
-    if m:
-        result["instance_type"] = m.group(1).strip()
+    # Group rows by (size, rate_limit)
+    groups: dict = {}
+    with csv_path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            key = (int(row["Size"]), int(row["RateLimit"]))
+            groups.setdefault(key, []).append(row)
 
-    # Duration
-    m = re.search(r"Duration:\s*(\d+)\s*seconds", text)
-    if m:
-        result["duration"] = m.group(1)
-
-    # Find each "## Message Size: N bytes" section
-    # Use the Summary table when present (multi-run), otherwise the single table.
-    size_sections = re.split(r"^## Message Size:\s*(\d+)\s*bytes", text, flags=re.MULTILINE)
-    # size_sections[0] = preamble, then pairs of (size_str, section_text)
-    i = 1
-    while i < len(size_sections) - 1:
-        size = int(size_sections[i])
-        section = size_sections[i + 1]
-        i += 2
-
-        result["sizes"].append(size)
-        result["data"][size] = {}
-
-        # Prefer "### Summary" block when num_runs > 1
-        summary_match = re.search(r"### Summary[^\n]*\n(.*?)(?=^###|\Z)", section,
-                                  re.DOTALL | re.MULTILINE)
-        table_text = summary_match.group(1) if summary_match else section
-
-        # Parse markdown table rows (skip header and separator)
-        for row in re.finditer(
-            r"^\|\s*([\d,]+)\s*\|"   # rate
-            r"\s*([\d.]+)\s*\|"       # min
-            r"\s*([\d.]+)\s*\|"       # median
-            r"\s*([\d.]+)\s*\|"       # p75
-            r"\s*([\d.]+)\s*\|"       # p95
-            r"\s*([\d.]+)\s*\|"       # p99
-            r"\s*([\d,]+)\s*\|"       # pub_rate
-            r"\s*([\d.]+)\s*\|"       # pub_bw
-            r"\s*([\d.]+)\s*\|",      # con_bw
-            table_text,
-            re.MULTILINE,
-        ):
-            rate = int(row.group(1).replace(",", ""))
-            result["data"][size][rate] = {
-                "min":      row.group(2),
-                "median":   row.group(3),
-                "p75":      row.group(4),
-                "p95":      row.group(5),
-                "p99":      row.group(6),
-                "pub_rate": row.group(7).replace(",", ""),
-                "pub_bw":   row.group(8),
-                "con_bw":   row.group(9),
-            }
+    for (size, rate), rows in groups.items():
+        result["data"].setdefault(size, {})[rate] = {
+            "min":      f"{statistics.median(float(r['Min'])      for r in rows):.2f}",
+            "median":   f"{statistics.median(float(r['Median'])   for r in rows):.2f}",
+            "p75":      f"{statistics.median(float(r['P75'])      for r in rows):.2f}",
+            "p95":      f"{statistics.median(float(r['P95'])      for r in rows):.2f}",
+            "p99":      f"{statistics.median(float(r['P99'])      for r in rows):.2f}",
+            "pub_rate": str(round(statistics.median(float(r['PubRate']) for r in rows))),
+            "pub_bw":   f"{statistics.median(float(r['PubBW'])    for r in rows):.2f}",
+            "con_bw":   f"{statistics.median(float(r['ConBW'])    for r in rows):.2f}",
+        }
 
     return result
 
@@ -170,11 +141,12 @@ def parse_latency_file(path: Path) -> dict:
 # Throughput parsing
 # ---------------------------------------------------------------------------
 
-def parse_throughput_file(path: Path) -> dict:
+def parse_throughput_files(csv_path: Path, json_path: Path) -> dict:
     """
-    Parse a per-instance throughput_results.md produced by run_multiple_throughput_tests.sh.
+    Parse per-instance throughput results from CSV + JSON config files produced
+    by run_multiple_throughput_tests.sh.
 
-    Returns:
+    Returns the same dict shape as the former parse_throughput_file():
         {
           "instance_type": str,
           "lavinmq_version": str,
@@ -186,46 +158,28 @@ def parse_throughput_file(path: Path) -> dict:
           }
         }
     """
-    text = path.read_text()
-    result = {
-        "instance_type": "",
-        "lavinmq_version": "",
-        "duration": "",
-        "data": {},
+    with json_path.open() as f:
+        cfg = json.load(f)
+
+    result: dict = {
+        "instance_type":   cfg.get("instance_type", ""),
+        "lavinmq_version": cfg.get("lavinmq_version", ""),
+        "duration":        str(cfg.get("duration", "")),
+        "data":            {},
     }
 
-    m = re.search(r"Broker Instance Type:\s*(.+)$", text, re.MULTILINE)
-    if m:
-        result["instance_type"] = m.group(1).strip()
+    groups: dict = {}
+    with csv_path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            key = int(row["Size"])
+            groups.setdefault(key, []).append(row)
 
-    m = re.search(r"LavinMQ Version:\s*(.+)$", text, re.MULTILINE)
-    if m:
-        result["lavinmq_version"] = m.group(1).strip()
-
-    m = re.search(r"Duration:\s*(\d+)\s*seconds", text)
-    if m:
-        result["duration"] = m.group(1)
-
-    # Prefer "### Summary" table when present
-    summary_match = re.search(r"### Summary[^\n]*\n(.*?)(?=^###|^##|\Z)", text,
-                               re.DOTALL | re.MULTILINE)
-    table_text = summary_match.group(1) if summary_match else text
-
-    for row in re.finditer(
-        r"^\|\s*(\d+)\s*\|"          # size
-        r"\s*([\d,]+)\s*\|"          # pub_rate
-        r"\s*([\d,]+)\s*\|"          # con_rate
-        r"\s*([\d.]+)\s*\|"          # pub_bw
-        r"\s*([\d.]+)\s*\|",         # con_bw
-        table_text,
-        re.MULTILINE,
-    ):
-        size = int(row.group(1))
+    for size, rows in groups.items():
         result["data"][size] = {
-            "pub_rate": row.group(2).replace(",", ""),
-            "con_rate": row.group(3).replace(",", ""),
-            "pub_bw":   row.group(4),
-            "con_bw":   row.group(5),
+            "pub_rate": str(round(statistics.median(float(r['PubRate']) for r in rows))),
+            "con_rate": str(round(statistics.median(float(r['ConRate']) for r in rows))),
+            "pub_bw":   f"{statistics.median(float(r['PubBW']) for r in rows):.2f}",
+            "con_bw":   f"{statistics.median(float(r['ConBW']) for r in rows):.2f}",
         }
 
     return result
@@ -378,8 +332,8 @@ def build_throughput_summary(parsed: dict, version: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Aggregate LavinMQ benchmark results.")
     parser.add_argument("--version",        required=True,  help="LavinMQ version, e.g. 2.7.0-rc.3")
-    parser.add_argument("--latency-dir",    default=None,   help="Directory containing per-instance *_latency.md files")
-    parser.add_argument("--throughput-dir", default=None,   help="Directory containing per-instance *_throughput.md files")
+    parser.add_argument("--latency-dir",    default=None,   help="Directory containing per-instance *_latency.csv files (with matching *_latency.json)")
+    parser.add_argument("--throughput-dir", default=None,   help="Directory containing per-instance *_throughput.csv files (with matching *_throughput.json)")
     parser.add_argument("--output-dir",     required=True,  help="Root results directory (e.g. results/)")
     args = parser.parse_args()
 
@@ -389,7 +343,7 @@ def main() -> None:
     # ---- Latency -----------------------------------------------------------
     if args.latency_dir and Path(args.latency_dir).is_dir():
         latency_dir = Path(args.latency_dir)
-        latency_files = sorted(latency_dir.glob("**/*_latency.md"))
+        latency_files = sorted(latency_dir.glob("**/*_latency.csv"))
         if latency_files:
             out_latency = out_root / "latency"
             out_latency.mkdir(parents=True, exist_ok=True)
@@ -398,21 +352,23 @@ def main() -> None:
             for f in latency_files:
                 slug = slug_from_filename(f, "_latency")
                 print(f"  Parsing latency: {f.name} -> slug={slug}")
-                # Copy raw file
-                dest = out_latency / f"{slug}_latency.md"
-                shutil.copy2(f, dest)
+                # Copy raw files
+                shutil.copy2(f, out_latency / f"{slug}_latency.csv")
+                json_src = f.with_suffix(".json")
+                if json_src.exists():
+                    shutil.copy2(json_src, out_latency / f"{slug}_latency.json")
                 # Parse
                 try:
-                    parsed_latency[slug] = parse_latency_file(f)
+                    parsed_latency[slug] = parse_latency_files(f, json_src)
                 except Exception as e:
                     print(f"  WARNING: failed to parse {f}: {e}")
 
-            for existing_f in sorted(out_latency.glob("*_latency.md")):
+            for existing_f in sorted(out_latency.glob("*_latency.csv")):
                 slug = slug_from_filename(existing_f, "_latency")
                 if slug not in parsed_latency:
                     print(f"  Including existing: {existing_f.name} -> slug={slug}")
                     try:
-                        parsed_latency[slug] = parse_latency_file(existing_f)
+                        parsed_latency[slug] = parse_latency_files(existing_f, existing_f.with_suffix(".json"))
                     except Exception as e:
                         print(f"  WARNING: failed to parse existing {existing_f}: {e}")
 
@@ -429,7 +385,7 @@ def main() -> None:
     # ---- Throughput --------------------------------------------------------
     if args.throughput_dir and Path(args.throughput_dir).is_dir():
         throughput_dir = Path(args.throughput_dir)
-        throughput_files = sorted(throughput_dir.glob("**/*_throughput.md"))
+        throughput_files = sorted(throughput_dir.glob("**/*_throughput.csv"))
         if throughput_files:
             out_throughput = out_root / "throughput"
             out_throughput.mkdir(parents=True, exist_ok=True)
@@ -438,19 +394,21 @@ def main() -> None:
             for f in throughput_files:
                 slug = slug_from_filename(f, "_throughput")
                 print(f"  Parsing throughput: {f.name} -> slug={slug}")
-                dest = out_throughput / f"{slug}_throughput.md"
-                shutil.copy2(f, dest)
+                shutil.copy2(f, out_throughput / f"{slug}_throughput.csv")
+                json_src = f.with_suffix(".json")
+                if json_src.exists():
+                    shutil.copy2(json_src, out_throughput / f"{slug}_throughput.json")
                 try:
-                    parsed_throughput[slug] = parse_throughput_file(f)
+                    parsed_throughput[slug] = parse_throughput_files(f, json_src)
                 except Exception as e:
                     print(f"  WARNING: failed to parse {f}: {e}")
 
-            for existing_f in sorted(out_throughput.glob("*_throughput.md")):
+            for existing_f in sorted(out_throughput.glob("*_throughput.csv")):
                 slug = slug_from_filename(existing_f, "_throughput")
                 if slug not in parsed_throughput:
                     print(f"  Including existing: {existing_f.name} -> slug={slug}")
                     try:
-                        parsed_throughput[slug] = parse_throughput_file(existing_f)
+                        parsed_throughput[slug] = parse_throughput_files(existing_f, existing_f.with_suffix(".json"))
                     except Exception as e:
                         print(f"  WARNING: failed to parse existing {existing_f}: {e}")
 
