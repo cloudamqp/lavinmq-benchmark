@@ -42,3 +42,7 @@ terraform.rc
 # Ignore environment file
 scenarios/aws/.env
 scenarios/aws/*/.env
+
+# Python bytecode cache
+__pycache__/
+*.pyc

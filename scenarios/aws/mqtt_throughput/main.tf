@@ -97,7 +97,8 @@ resource "terraform_data" "mqtt_throughput_tests" {
     join(",", var.message_sizes),
     var.test_duration,
     var.broker_instance_type,
-    var.lavinmq_version
+    var.lavinmq_version,
+    var.num_runs
   ]
 
   # Upload test scripts
@@ -115,11 +116,12 @@ resource "terraform_data" "mqtt_throughput_tests" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/ubuntu/mqtt_bench.sh /home/ubuntu/run_mqtt_throughput_tests.sh",
-      format("/home/ubuntu/run_mqtt_throughput_tests.sh %s %s %s %s",
+      format("/home/ubuntu/run_mqtt_throughput_tests.sh %s %s %s %s %s",
         module.broker.private_ip,
         join(",", var.message_sizes),
         var.test_duration,
-        var.broker_instance_type
+        var.broker_instance_type,
+        var.num_runs
       )
     ]
   }
@@ -139,16 +141,21 @@ output "load_generator_public_dns" {
 }
 
 output "results_file_path" {
-  description = "Path to the results file on the load generator instance"
-  value       = "/home/ubuntu/mqtt_throughput_results.md"
+  description = "Path to the results CSV file on the load generator instance"
+  value       = "/home/ubuntu/mqtt_throughput_results.csv"
+}
+
+output "results_config_path" {
+  description = "Path to the results JSON config file on the load generator instance"
+  value       = "/home/ubuntu/mqtt_throughput_results.json"
 }
 
 output "ssh_view_results_command" {
   description = "Command to SSH and view the results"
-  value       = format("ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s 'cat /home/ubuntu/mqtt_throughput_results.md'", module.load_generator.public_dns)
+  value       = format("ssh -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s 'cat /home/ubuntu/mqtt_throughput_results.csv'", module.load_generator.public_dns)
 }
 
 output "scp_download_results_command" {
-  description = "Command to download the results file using SCP"
-  value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:/home/ubuntu/mqtt_throughput_results.md ./mqtt_throughput_results.md", module.load_generator.public_dns)
+  description = "Commands to download the results files using SCP"
+  value       = format("scp -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known-hosts ubuntu@%s:'/home/ubuntu/mqtt_throughput_results.csv /home/ubuntu/mqtt_throughput_results.json' .", module.load_generator.public_dns)
 }
