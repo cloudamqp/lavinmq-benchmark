@@ -19,11 +19,12 @@ retry() {
 
 retry 5 apt-get update -qq > /dev/null
 
-# Install Erlang 27 for emqtt-bench (Ubuntu default is too old)
-retry 5 apt-get install -y -qq software-properties-common > /dev/null
-retry 5 add-apt-repository -y ppa:rabbitmq/rabbitmq-erlang > /dev/null
+# Install Erlang 27 for emqtt-bench (Ubuntu default is too old; use Erlang Solutions for OTP 27)
+retry 5 curl -fsSL https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb \
+  -o /tmp/erlang-solutions.deb
+dpkg -i /tmp/erlang-solutions.deb
 retry 5 apt-get update -qq > /dev/null
-retry 5 apt-get install -y -qq erlang > /dev/null
+retry 5 apt-get install -y -qq "esl-erlang=1:27.*" > /dev/null
 
 # Install Java for mqttloader
 retry 5 apt-get install default-jre unzip -y -qq > /dev/null
