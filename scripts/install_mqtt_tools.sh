@@ -19,11 +19,17 @@ retry() {
 
 retry 5 apt-get update -qq > /dev/null
 
-# Install Erlang 27 for emqtt-bench (Ubuntu default is too old)
-retry 5 apt-get install -y -qq software-properties-common > /dev/null
-retry 5 add-apt-repository -y ppa:rabbitmq/rabbitmq-erlang > /dev/null
+# Install Erlang for emqtt-bench (OTP 27+ required; use cloudamqp/erlang on packagecloud)
+. /etc/os-release
+mkdir -p /etc/apt/keyrings
+retry 5 curl -fsSL https://packagecloud.io/cloudamqp/erlang/gpgkey \
+  -o /tmp/cloudamqp-erlang.gpg.tmp
+gpg --dearmor < /tmp/cloudamqp-erlang.gpg.tmp > /etc/apt/keyrings/cloudamqp-erlang.gpg
+rm /tmp/cloudamqp-erlang.gpg.tmp
+echo "deb [signed-by=/etc/apt/keyrings/cloudamqp-erlang.gpg] https://packagecloud.io/cloudamqp/erlang/${ID} ${VERSION_CODENAME} main" \
+  > /etc/apt/sources.list.d/cloudamqp-erlang.list
 retry 5 apt-get update -qq > /dev/null
-retry 5 apt-get install -y -qq erlang > /dev/null
+retry 5 apt-get install -y -qq esl-erlang > /dev/null
 
 # Install Java for mqttloader
 retry 5 apt-get install default-jre unzip -y -qq > /dev/null
