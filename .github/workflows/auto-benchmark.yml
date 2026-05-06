@@ -1,0 +1,35 @@
+name: Auto-trigger Benchmark on Release
+
+on:
+  repository_dispatch:
+    types: [new-release-detected]
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip pre-releases
+        id: check
+        run: |
+          VERSION="${{ github.event.client_payload.version }}"
+          VERSION="${VERSION#v}"
+          PRERELEASE="${{ github.event.client_payload.prerelease }}"
+
+          if [ "$PRERELEASE" = "true" ] || echo "$VERSION" | grep -qE '-(rc|beta)\.'; then
+            echo "Skipping pre-release: $VERSION"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "skip=false"       >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger benchmark
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          gh workflow run benchmark.yml \
+            --repo "${{ github.repository }}" \
+            --field lavinmq_version="${{ steps.check.outputs.version }}" \
+            --field scenarios=all \
+            --field draft=false
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
