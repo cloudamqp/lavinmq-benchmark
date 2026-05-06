@@ -1,0 +1,10 @@
+{
+  "instance_type": "t4g.small",
+  "lavinmq_version": "2.5.0",
+  "duration": 60,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 3,
+  "queue": "perf-test",
+  "sizes": [16,64,256,512,1024,4096,16384,65536]
+}
