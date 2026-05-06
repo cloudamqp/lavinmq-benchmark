@@ -14,6 +14,25 @@ format_number() {
     echo "$num" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
 }
 
+# Wait for the broker HTTP API to become available
+wait_for_broker() {
+  local max_wait="${1:-120}"
+  local waited=0
+  echo "Waiting for broker to be available..."
+  while ! curl -sf --max-time 3 \
+    --header 'Authorization: Basic cGVyZnRlc3Q6cGVyZnRlc3Q=' \
+    "http://$BROKER_IP:15672/api/overview" > /dev/null; do
+    if [ "$waited" -ge "$max_wait" ]; then
+      echo "ERROR: Broker not available after ${max_wait}s, giving up"
+      exit 1
+    fi
+    echo "Broker not ready, retrying in 5s... (${waited}s elapsed)"
+    sleep 5
+    waited=$((waited + 5))
+  done
+  echo "Broker is available"
+}
+
 BROKER_IP="${1}"
 SIZES="${2:-16,64,256,512,1024}"  # Default sizes if not provided
 RATE_LIMITS="${3:-10,100,1000,10000,50000,100000,200000,500000}"  # Default rate limits
@@ -108,6 +127,9 @@ for RUN in $(seq 1 "$NUM_RUNS"); do
       echo "Run $RUN/$NUM_RUNS — size: $SIZE bytes, rate: $RATE msgs/s"
       echo "--------------------------------------"
       
+      # Ensure broker is up before purging (it may have restarted after an OOM kill)
+      wait_for_broker
+
       # Purge the queue before test using HTTP API
       echo "Purging queue '$QUEUE_NAME' via HTTP API..."
       PURGE_RESPONSE=$(curl -s -w "\n%{http_code}" --request DELETE \
