@@ -1,0 +1,9 @@
+{
+  "instance_type": "r7g.xlarge",
+  "lavinmq_version": "2.8.0",
+  "duration": 60,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 3,
+  "sizes": [16,64,256,512,1024]
+}
