@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'results/**'
+      - 'scripts/build_latest.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -22,6 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Full history so build_latest.py can read the commit date of the
+          # latest version's results directory.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Build latest.json
+        run: python3 scripts/build_latest.py
 
       - name: Write CNAME for benchmark.lavinmq.com
         run: echo "benchmark.lavinmq.com" > results/CNAME
