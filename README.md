@@ -140,6 +140,20 @@ gh workflow run benchmark.yml \
 The individual `benchmark-latency.yml`, `benchmark-throughput.yml`, and `benchmark-mqtt-throughput.yml`
 workflows can also be triggered directly in the same way if you want to skip the aggregate/PR step.
 
+## Previewing results locally
+
+Aggregated JSONs under `results/` are published to `benchmark.lavinmq.com` and consumed by the
+charts page in [`lavinmq-website`](https://github.com/cloudamqp/lavinmq-website). To preview a
+local copy:
+
+```shell
+python3 scripts/build_data.py        # regenerate throughput/latency/mqtt_throughput JSONs
+python3 scripts/serve.py             # serve results/ on http://127.0.0.1:8081 with CORS
+```
+
+The website's `benchmark-charts.html` points at `http://localhost:8081` in non-production Jekyll
+environments, so `npm run dev` in `lavinmq-website` picks the local data up automatically.
+
 ## Logging
 
 Enable detailed Terraform provider logs by setting:

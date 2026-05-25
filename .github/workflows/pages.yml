@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'results/**'
+      - 'scripts/build_data.py'
       - 'scripts/build_latest.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -34,6 +35,9 @@ jobs:
 
       - name: Build latest.json
         run: python3 scripts/build_latest.py
+
+      - name: Build per-scenario aggregates (throughput / latency / mqtt_throughput)
+        run: python3 scripts/build_data.py
 
       - name: Write CNAME for benchmark.lavinmq.com
         run: echo "benchmark.lavinmq.com" > results/CNAME
