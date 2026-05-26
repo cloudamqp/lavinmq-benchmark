@@ -1,0 +1,83 @@
+name: Poll LavinMQ releases on packagecloud
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+jobs:
+  poll:
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [lavinmq, lavinmq-prerelease]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Collect handled versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # PRs (open/closed/merged) targeting results/* branches
+          gh pr list --state all --limit 500 --json headRefName --jq '.[].headRefName' \
+            | (grep -E '^results/(pre-release/)?v' || true) \
+            | sed -E 's,^results/(pre-release/)?v,,' \
+            > existing.txt
+          # Plus result directories already merged to main
+          { ls -d results/v*/ results/pre-release/v*/ 2>/dev/null || true; } \
+            | sed -E 's,^results/(pre-release/)?v,,; s,/$,,' \
+            >> existing.txt
+          sort -u -o existing.txt existing.txt
+          echo "Handled versions:"; cat existing.txt
+
+      - name: Diff ${{ matrix.repo }} and dispatch new versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Fetch versions from packagecloud's apt index. Drop the "-1" debian
+          # revision suffix and skip alphas (install_lavinmq.sh routes alphas
+          # to the wrong repo).
+          curl -fsSL "https://packagecloud.io/cloudamqp/${{ matrix.repo }}/ubuntu/dists/noble/main/binary-amd64/Packages" \
+            | awk 'BEGIN{p=0} /^Package: lavinmq$/{p=1;next} /^$/{p=0} p && /^Version:/{print $2}' \
+            | sed 's/-1$//' \
+            | (grep -vE -- '-alpha\.' || true) \
+            | sort -u > available.txt
+
+          # High-water mark: only dispatch versions strictly newer than what
+          # we've seen. Stable arm compares against the latest stable; the
+          # prerelease arm compares against the latest of *anything* handled,
+          # so an obsolete RC whose stable already shipped won't be picked up.
+          if [ "${{ matrix.repo }}" = "lavinmq" ]; then
+            high_water=$( (grep -vE -- '-(beta|rc)\.' existing.txt || true) | sort -V | tail -1)
+          else
+            high_water=$(sort -V existing.txt | tail -1)
+          fi
+          echo "High-water mark for ${{ matrix.repo }}: ${high_water:-(none)}"
+
+          : > new.txt
+          while IFS= read -r v; do
+            [ -z "$v" ] && continue
+            if [ -n "$high_water" ]; then
+              top=$(printf '%s\n%s\n' "$v" "$high_water" | sort -V | tail -1)
+              { [ "$top" = "$v" ] && [ "$v" != "$high_water" ]; } || continue
+            fi
+            grep -Fxq "$v" existing.txt && continue
+            echo "$v" >> new.txt
+          done < available.txt
+
+          echo "New from ${{ matrix.repo }}:"; cat new.txt
+          [ -s new.txt ] || { echo "Nothing to dispatch."; exit 0; }
+
+          while IFS= read -r v; do
+            echo "→ dispatching benchmark for v${v}"
+            gh workflow run benchmark.yml -f lavinmq_version="$v" -f scenarios=all
+          done < new.txt

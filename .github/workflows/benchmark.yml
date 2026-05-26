@@ -51,6 +51,15 @@ on:
 permissions:
   contents: write
 
+# Prevent duplicate runs for the same version racing each other. A second
+# dispatch (e.g. from the hourly poll while a previous run is still in flight)
+# queues behind the first; peter-evans/create-pull-request is idempotent on
+# the results/v<ver> branch, so the worst case is one redundant run, never a
+# duplicate PR.
+concurrency:
+  group: benchmark-${{ inputs.lavinmq_version }}
+  cancel-in-progress: false
+
 jobs:
   latency:
     name: "Latency"
