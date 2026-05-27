@@ -18,9 +18,13 @@ apt-get install -y git make
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-git clone "$REPO_URL" "$WORK_DIR"
+# Use init + fetch instead of clone so that arbitrary commit SHAs work.
+# A regular clone only fetches branch/tag tips; commits reachable only via
+# PR refs or deleted branches won't be found with `git checkout`.
+git -C "$WORK_DIR" init
+git -C "$WORK_DIR" fetch --depth=1 "$REPO_URL" "$GIT_REF"
 cd "$WORK_DIR"
-git checkout "$GIT_REF"
+git checkout FETCH_HEAD
 
 case "$TARGET" in
   broker)
