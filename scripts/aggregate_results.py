@@ -407,6 +407,7 @@ def main() -> None:
 
     if args.output_path:
         out_root = Path(args.output_path)
+        version = args.version
     else:
         version = args.version.lstrip("v")
         is_prerelease = bool(re.search(r"-(rc|beta)\.", version))
