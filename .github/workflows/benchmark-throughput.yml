@@ -4,8 +4,9 @@ on:
   workflow_call:
     inputs:
       lavinmq_version:
-        required: true
+        required: false
         type: string
+        default: ""
       brokers:
         required: false
         type: string
