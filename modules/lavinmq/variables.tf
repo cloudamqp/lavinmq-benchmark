@@ -32,3 +32,21 @@ variable "stop_lavinmq" {
   type    = bool
   default = false
 }
+
+variable "source_repo" {
+  description = "Git repository URL to clone and build from (e.g. https://github.com/cloudamqp/lavinmq). Empty = use apt-installed binary."
+  type        = string
+  default     = ""
+}
+
+variable "source_ref" {
+  description = "Git ref (branch or commit hash) to check out when building from source."
+  type        = string
+  default     = ""
+}
+
+variable "build_target" {
+  description = "Which binary to build: 'broker' or 'perf'."
+  type        = string
+  default     = ""
+}

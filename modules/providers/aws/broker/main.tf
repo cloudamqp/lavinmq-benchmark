@@ -19,6 +19,9 @@ module "install_lavinmq" {
   install_lavinmq     = var.install_lavinmq
   configure_lavinmq   = var.configure_lavinmq
   create_lavinmq_user = var.create_lavinmq_user
+  source_repo         = var.source_repo
+  source_ref          = var.source_ref
+  build_target        = "broker"
 }
 
 output "public_dns" {

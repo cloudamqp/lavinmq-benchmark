@@ -20,6 +20,9 @@ module "install_lavinmq" {
   install_lavinmq     = var.install_lavinmq
   create_lavinmq_user = var.create_lavinmq_user
   stop_lavinmq        = var.stop_lavinmq
+  source_repo         = var.source_repo
+  source_ref          = var.source_ref
+  build_target        = "perf"
 }
 
 output "public_dns" {
