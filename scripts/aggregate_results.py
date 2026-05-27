@@ -402,14 +402,18 @@ def main() -> None:
     parser.add_argument("--throughput-dir",       default=None,   help="Directory containing per-instance *_throughput.csv files (with matching *_throughput.json)")
     parser.add_argument("--mqtt-throughput-dir",  default=None,   help="Directory containing per-instance *_mqtt_throughput.csv files (with matching *_mqtt_throughput.json)")
     parser.add_argument("--output-dir",           required=True,  help="Root results directory (e.g. results/)")
+    parser.add_argument("--output-path",          default=None,   help="Full output path override (skips version-based subdirectory logic, e.g. results/temp/my-label)")
     args = parser.parse_args()
 
-    version = args.version.lstrip("v")
-    is_prerelease = bool(re.search(r"-(rc|beta)\.", version))
-    if is_prerelease:
-        out_root = Path(args.output_dir) / "pre-release" / f"v{version}"
+    if args.output_path:
+        out_root = Path(args.output_path)
     else:
-        out_root = Path(args.output_dir) / f"v{version}"
+        version = args.version.lstrip("v")
+        is_prerelease = bool(re.search(r"-(rc|beta)\.", version))
+        if is_prerelease:
+            out_root = Path(args.output_dir) / "pre-release" / f"v{version}"
+        else:
+            out_root = Path(args.output_dir) / f"v{version}"
 
     # ---- Latency -----------------------------------------------------------
     if args.latency_dir and Path(args.latency_dir).is_dir():
