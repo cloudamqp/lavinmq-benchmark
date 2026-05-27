@@ -1,0 +1,13 @@
+{
+  "instance_type": "c8g.large",
+  "lavinmq_version": "2.8.1",
+  "lavinmqperf_version": "2.8.0",
+  "broker_source_ref": "",
+  "load_generator_source_ref": "b03008651b0ae67a33eeb8fc615d881f1396fc5f",
+  "duration": 20,
+  "producers": 1,
+  "consumers": 1,
+  "runs": 1,
+  "queue": "perf-test",
+  "sizes": [16,64]
+}
