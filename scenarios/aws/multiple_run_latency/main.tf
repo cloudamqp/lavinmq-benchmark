@@ -109,7 +109,9 @@ resource "terraform_data" "multiple_latency_tests" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/ubuntu/run_multiple_latency_tests.sh",
-      format("/home/ubuntu/run_multiple_latency_tests.sh %s %s %s %s %s %s '%s'",
+      format("BROKER_SOURCE_REF='%s' LG_SOURCE_REF='%s' /home/ubuntu/run_multiple_latency_tests.sh %s %s %s %s %s %s '%s'",
+        var.broker_source_ref,
+        var.load_generator_source_ref,
         module.broker.private_ip,
         join(",", var.message_sizes),
         join(",", var.rate_limits),

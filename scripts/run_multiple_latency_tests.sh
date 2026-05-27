@@ -68,6 +68,13 @@ if [ -z "$LAVINMQ_VERSION" ]; then
   LAVINMQ_VERSION="Unknown (failed to fetch)"
 fi
 
+# Capture lavinmqperf version
+LAVINMQPERF_VERSION=$(lavinmqperf --version 2>/dev/null | head -1 || echo "unknown")
+
+# Source refs set as env vars by Terraform when building from source
+BROKER_SOURCE_REF="${BROKER_SOURCE_REF:-}"
+LG_SOURCE_REF="${LG_SOURCE_REF:-}"
+
 echo "=========================================="
 echo "Multiple Latency Test Runner"
 echo "=========================================="
@@ -244,9 +251,12 @@ if [ -n "$PER_SIZE_RATE_LIMITS" ]; then
 fi
 PSRL_JSON="${PSRL_JSON}}"
 
-printf '{\n  "instance_type": "%s",\n  "lavinmq_version": "%s",\n  "duration": %s,\n  "producers": 1,\n  "consumers": 1,\n  "runs": %s,\n  "queue": "%s",\n  "sizes": %s,\n  "rate_limits": %s,\n  "per_size_rate_limits": %s\n}' \
+printf '{\n  "instance_type": "%s",\n  "lavinmq_version": "%s",\n  "lavinmqperf_version": "%s",\n  "broker_source_ref": "%s",\n  "load_generator_source_ref": "%s",\n  "duration": %s,\n  "producers": 1,\n  "consumers": 1,\n  "runs": %s,\n  "queue": "%s",\n  "sizes": %s,\n  "rate_limits": %s,\n  "per_size_rate_limits": %s\n}' \
   "$BROKER_INSTANCE_TYPE" \
   "$LAVINMQ_VERSION" \
+  "$LAVINMQPERF_VERSION" \
+  "$BROKER_SOURCE_REF" \
+  "$LG_SOURCE_REF" \
   "$DURATION" \
   "$NUM_RUNS" \
   "$QUEUE_NAME" \
