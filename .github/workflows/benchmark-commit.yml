@@ -1,0 +1,364 @@
+name: Benchmark – Commit/Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      broker_url:
+        description: >
+          GitHub URL for the broker binary (leave empty to use lavinmq_version).
+          Supports commit, branch, and PR URLs, e.g.:
+          https://github.com/cloudamqp/lavinmq/commit/b03008651b
+          https://github.com/cloudamqp/lavinmq/pull/1971/changes/b03008651b
+          https://github.com/<user>/lavinmq/tree/my-branch
+        required: false
+        type: string
+        default: ""
+      load_generator_url:
+        description: >
+          GitHub URL for the lavinmqperf binary (leave empty to use lavinmq_version).
+          Same URL formats as broker_url.
+        required: false
+        type: string
+        default: ""
+      lavinmq_version:
+        description: "Base LavinMQ version for apt-install (e.g. 2.8.0). Leave empty for latest."
+        required: false
+        type: string
+        default: ""
+      scenarios:
+        description: "Which scenarios to run"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - latency
+          - throughput
+          - mqtt-throughput
+      brokers:
+        description: "Comma-separated broker instance types (e.g. \"c8g.large,t4g.micro\"). Leave empty to run all."
+        required: false
+        type: string
+        default: ""
+      num_runs:
+        description: "Number of runs per scenario. Leave empty to use default (3)."
+        required: false
+        type: string
+        default: ""
+      message_sizes:
+        description: "JSON array of message sizes in bytes. Leave empty to use per-scenario defaults."
+        required: false
+        type: string
+        default: ""
+      test_duration:
+        description: "Test duration in seconds per run. Leave empty to use per-scenario defaults."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  # --------------------------------------------------------------------------
+  # PARSE – extract repo URL + ref from each GitHub URL, derive result label
+  # --------------------------------------------------------------------------
+  parse:
+    name: "Parse source URLs"
+    runs-on: ubuntu-latest
+    outputs:
+      broker_source_repo: ${{ steps.parse.outputs.broker_source_repo }}
+      broker_source_ref:  ${{ steps.parse.outputs.broker_source_ref }}
+      lg_source_repo:     ${{ steps.parse.outputs.lg_source_repo }}
+      lg_source_ref:      ${{ steps.parse.outputs.lg_source_ref }}
+      label:              ${{ steps.parse.outputs.label }}
+
+    steps:
+      - name: Parse URLs and derive label
+        id: parse
+        run: |
+          parse_url() {
+            local URL="$1"
+            if [ -z "$URL" ]; then
+              echo ""
+              echo ""
+              return
+            fi
+
+            # Extract owner/repo (always the first two path segments after github.com)
+            local OWNER_REPO
+            OWNER_REPO=$(echo "$URL" | sed 's|https://github.com/\([^/]*/[^/]*\).*|\1|')
+            local REPO_URL="https://github.com/${OWNER_REPO}"
+
+            local REF=""
+            if echo "$URL" | grep -qE '/pull/[0-9]+/changes/'; then
+              REF=$(echo "$URL" | sed 's|.*/changes/||')
+            elif echo "$URL" | grep -q '/tree/'; then
+              REF=$(echo "$URL" | sed "s|https://github.com/${OWNER_REPO}/tree/||")
+            elif echo "$URL" | grep -q '/commit/'; then
+              REF=$(echo "$URL" | sed 's|.*/commit/||')
+            else
+              echo "::error::Cannot parse GitHub URL: $URL" >&2
+              echo "Supported formats:" >&2
+              echo "  https://github.com/owner/repo/commit/<hash>" >&2
+              echo "  https://github.com/owner/repo/tree/<branch>" >&2
+              echo "  https://github.com/owner/repo/pull/<n>/changes/<hash>" >&2
+              exit 1
+            fi
+
+            echo "$REPO_URL"
+            echo "$REF"
+          }
+
+          derive_label() {
+            local REF="$1"
+            if [ -z "$REF" ]; then
+              echo ""
+              return
+            fi
+            # Commit hash (7-40 hex chars) → truncate to 8 chars
+            if echo "$REF" | grep -qE '^[0-9a-f]{7,40}$'; then
+              echo "${REF:0:8}"
+            else
+              # Branch name → sanitize (/ → -, strip non-alphanum except . _ -)
+              echo "$REF" | sed 's|/|-|g; s|[^a-zA-Z0-9._-]|-|g'
+            fi
+          }
+
+          BROKER_URL="${{ inputs.broker_url }}"
+          LG_URL="${{ inputs.load_generator_url }}"
+
+          if [ -z "$BROKER_URL" ] && [ -z "$LG_URL" ]; then
+            echo "::error::At least one of broker_url or load_generator_url must be set."
+            exit 1
+          fi
+
+          # Parse broker URL
+          read -r BROKER_REPO BROKER_REF <<< "$(parse_url "$BROKER_URL" | tr '\n' ' ')"
+
+          # Parse load generator URL
+          read -r LG_REPO LG_REF <<< "$(parse_url "$LG_URL" | tr '\n' ' ')"
+
+          # Derive label
+          BROKER_LABEL=$(derive_label "$BROKER_REF")
+          LG_LABEL=$(derive_label "$LG_REF")
+
+          if [ -n "$BROKER_LABEL" ] && [ -n "$LG_LABEL" ]; then
+            LABEL="${BROKER_LABEL}_${LG_LABEL}"
+          elif [ -n "$BROKER_LABEL" ]; then
+            LABEL="$BROKER_LABEL"
+          else
+            LABEL="$LG_LABEL"
+          fi
+
+          echo "broker_source_repo=${BROKER_REPO}" >> "$GITHUB_OUTPUT"
+          echo "broker_source_ref=${BROKER_REF}"   >> "$GITHUB_OUTPUT"
+          echo "lg_source_repo=${LG_REPO}"         >> "$GITHUB_OUTPUT"
+          echo "lg_source_ref=${LG_REF}"           >> "$GITHUB_OUTPUT"
+          echo "label=${LABEL}"                    >> "$GITHUB_OUTPUT"
+
+          echo "### Parsed source refs" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | Repo | Ref |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Broker | \`${BROKER_REPO:-—}\` | \`${BROKER_REF:-—}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Load generator | \`${LG_REPO:-—}\` | \`${LG_REF:-—}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Result label | \`${LABEL}\` | |" >> "$GITHUB_STEP_SUMMARY"
+
+  # --------------------------------------------------------------------------
+  # BENCHMARK JOBS – call existing sub-workflows with source vars
+  # --------------------------------------------------------------------------
+  latency:
+    name: "Latency"
+    needs: parse
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
+    uses: ./.github/workflows/benchmark-latency.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
+      broker_source_repo: ${{ needs.parse.outputs.broker_source_repo }}
+      broker_source_ref: ${{ needs.parse.outputs.broker_source_ref }}
+      load_generator_source_repo: ${{ needs.parse.outputs.lg_source_repo }}
+      load_generator_source_ref: ${{ needs.parse.outputs.lg_source_ref }}
+    secrets: inherit
+
+  throughput:
+    name: "Throughput"
+    needs: parse
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
+    uses: ./.github/workflows/benchmark-throughput.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
+      broker_source_repo: ${{ needs.parse.outputs.broker_source_repo }}
+      broker_source_ref: ${{ needs.parse.outputs.broker_source_ref }}
+      load_generator_source_repo: ${{ needs.parse.outputs.lg_source_repo }}
+      load_generator_source_ref: ${{ needs.parse.outputs.lg_source_ref }}
+    secrets: inherit
+
+  mqtt_throughput:
+    name: "MQTT Throughput"
+    needs: parse
+    if: inputs.scenarios == 'all' || inputs.scenarios == 'mqtt-throughput'
+    uses: ./.github/workflows/benchmark-mqtt-throughput.yml
+    with:
+      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      brokers: ${{ inputs.brokers }}
+      num_runs: ${{ inputs.num_runs }}
+      message_sizes: ${{ inputs.message_sizes }}
+      test_duration: ${{ inputs.test_duration }}
+      broker_source_repo: ${{ needs.parse.outputs.broker_source_repo }}
+      broker_source_ref: ${{ needs.parse.outputs.broker_source_ref }}
+      load_generator_source_repo: ${{ needs.parse.outputs.lg_source_repo }}
+      load_generator_source_ref: ${{ needs.parse.outputs.lg_source_ref }}
+    secrets: inherit
+
+  # --------------------------------------------------------------------------
+  # AGGREGATE & PR
+  # --------------------------------------------------------------------------
+  aggregate:
+    name: "Aggregate results & open draft PR"
+    needs: [parse, latency, throughput, mqtt_throughput]
+    if: |
+      always() && !cancelled() &&
+      (needs.latency.result == 'success' || needs.latency.result == 'failure' ||
+       needs.throughput.result == 'success' || needs.throughput.result == 'failure' ||
+       needs.mqtt_throughput.result == 'success' || needs.mqtt_throughput.result == 'failure')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download latency artifacts
+        if: needs.latency.result == 'success' || needs.latency.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: latency-*
+          path: raw-results/latency
+          merge-multiple: false
+
+      - name: Download throughput artifacts
+        if: needs.throughput.result == 'success' || needs.throughput.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: throughput-*
+          path: raw-results/throughput
+          merge-multiple: false
+
+      - name: Download MQTT throughput artifacts
+        if: needs.mqtt_throughput.result == 'success' || needs.mqtt_throughput.result == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mqtt-throughput-*
+          path: raw-results/mqtt-throughput
+          merge-multiple: false
+
+      - name: Check that at least one artifact was downloaded
+        run: |
+          if [ -z "$(find raw-results -name '*.csv' 2>/dev/null)" ]; then
+            echo "No result files found – all benchmark jobs failed. Skipping PR."
+            echo "has_results=false" >> "$GITHUB_ENV"
+          else
+            echo "has_results=true" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/setup-python@v6
+        if: env.has_results == 'true'
+        with:
+          python-version: "3.x"
+
+      - name: Set results path
+        if: env.has_results == 'true'
+        run: echo "RESULTS_SUBDIR=temp/${{ needs.parse.outputs.label }}" >> "$GITHUB_ENV"
+
+      - name: Restore existing results from PR branch
+        if: env.has_results == 'true'
+        run: |
+          BRANCH="results/${{ env.RESULTS_SUBDIR }}"
+          if git fetch origin "${BRANCH}" 2>/dev/null; then
+            git checkout "origin/${BRANCH}" -- results/ 2>/dev/null || true
+          fi
+
+      - name: Aggregate results
+        if: env.has_results == 'true'
+        run: |
+          python scripts/aggregate_results.py \
+            --version "${{ needs.parse.outputs.label }}" \
+            --output-path         "results/temp/${{ needs.parse.outputs.label }}" \
+            --latency-dir         raw-results/latency \
+            --throughput-dir      raw-results/throughput \
+            --mqtt-throughput-dir raw-results/mqtt-throughput \
+            --output-dir          results
+
+      - name: Configure git
+        if: env.has_results == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clean up raw results
+        if: env.has_results == 'true'
+        run: rm -rf raw-results/
+
+      - name: Create Pull Request
+        if: env.has_results == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          add-paths: results/
+          draft: true
+          branch: results/${{ env.RESULTS_SUBDIR }}
+          base: main
+          title: "Benchmark results: ${{ needs.parse.outputs.label }}"
+          commit-message: "Add ${{ inputs.scenarios }} benchmark results for ${{ needs.parse.outputs.label }} [run ${{ github.run_id }}]"
+          body: |
+            Automated benchmark results built from source.
+
+            | | |
+            |---|---|
+            | Broker source | `${{ inputs.broker_url || '—' }}` |
+            | Load generator source | `${{ inputs.load_generator_url || '—' }}` |
+            | Base LavinMQ version | `${{ inputs.lavinmq_version || 'latest' }}` |
+            | Result label | `${{ needs.parse.outputs.label }}` |
+            | Scenarios | `${{ inputs.scenarios }}` |
+
+            Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            Results are in `results/temp/${{ needs.parse.outputs.label }}/`. Additional scenarios can be added by triggering new runs with the same URLs.
+
+  # --------------------------------------------------------------------------
+  # SUMMARY
+  # --------------------------------------------------------------------------
+  summary:
+    name: "Workflow summary"
+    needs: [parse, latency, throughput, mqtt_throughput, aggregate]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write job summary
+        run: |
+          LABEL="${{ needs.parse.outputs.label }}"
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Benchmark run: ${LABEL}
+
+          | | Result |
+          |---|---|
+          | Broker source | \`${{ inputs.broker_url || '—' }}\` |
+          | Load generator source | \`${{ inputs.load_generator_url || '—' }}\` |
+          | Base LavinMQ version | \`${{ inputs.lavinmq_version || 'latest' }}\` |
+          | Scenarios | \`${{ inputs.scenarios }}\` |
+          | Latency jobs | ${{ needs.latency.result || 'skipped' }} |
+          | Throughput jobs | ${{ needs.throughput.result || 'skipped' }} |
+          | MQTT Throughput jobs | ${{ needs.mqtt_throughput.result || 'skipped' }} |
+          | Aggregate & PR | ${{ needs.aggregate.result }} |
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
