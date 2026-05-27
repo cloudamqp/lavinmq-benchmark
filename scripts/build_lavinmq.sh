@@ -22,6 +22,15 @@ git clone "$REPO_URL" "$WORK_DIR"
 cd "$WORK_DIR"
 git checkout "$GIT_REF"
 
+# Install the Crystal version required by this source tree (if specified),
+# otherwise upgrade to the latest available from the configured apt repo.
+if [ -f ".crystal-version" ]; then
+  CRYSTAL_VERSION=$(cat .crystal-version)
+  apt-get install -y "crystal=${CRYSTAL_VERSION}-1"
+else
+  apt-get install -y crystal
+fi
+
 shards install --without-development
 
 case "$TARGET" in
