@@ -46,6 +46,30 @@ variable "lavinmq_version" {
   default = ""
 }
 
+variable "broker_source_repo" {
+  description = "Git repository URL to build the broker binary from. Overrides the apt-installed binary when set."
+  type        = string
+  default     = ""
+}
+
+variable "broker_source_ref" {
+  description = "Git ref (branch or commit hash) for the broker source build."
+  type        = string
+  default     = ""
+}
+
+variable "load_generator_source_repo" {
+  description = "Git repository URL to build lavinmqperf from. Overrides the apt-installed binary when set."
+  type        = string
+  default     = ""
+}
+
+variable "load_generator_source_ref" {
+  description = "Git ref (branch or commit hash) for the lavinmqperf source build."
+  type        = string
+  default     = ""
+}
+
 ## Broker server
 variable "broker_instance_type" {
   type = string

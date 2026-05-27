@@ -52,6 +52,8 @@ module "broker" {
   install_lavinmq     = true
   configure_lavinmq   = true
   create_lavinmq_user = true
+  source_repo         = var.broker_source_repo
+  source_ref          = var.broker_source_ref
 }
 
 module "load_generator" {
@@ -71,6 +73,8 @@ module "load_generator" {
   lavinmq_version = "" // Use latest version
   install_lavinmq = true
   stop_lavinmq    = true
+  source_repo     = var.load_generator_source_repo
+  source_ref      = var.load_generator_source_ref
 }
 
 # Custom resource to run multiple latency tests
@@ -90,7 +94,9 @@ resource "terraform_data" "multiple_latency_tests" {
     var.test_duration,
     var.broker_instance_type,
     var.lavinmq_version,
-    var.num_runs
+    var.num_runs,
+    var.broker_source_ref,
+    var.load_generator_source_ref,
   ]
 
   # Upload the test script

@@ -52,6 +52,8 @@ module "broker" {
   install_lavinmq     = true
   configure_lavinmq   = true
   create_lavinmq_user = true
+  source_repo         = var.broker_source_repo
+  source_ref          = var.broker_source_ref
 }
 
 module "load_generator" {
@@ -71,6 +73,8 @@ module "load_generator" {
   lavinmq_version = ""
   install_lavinmq = true
   stop_lavinmq    = true
+  source_repo     = var.load_generator_source_repo
+  source_ref      = var.load_generator_source_ref
 }
 
 # Install MQTT benchmark tools on load generator
@@ -98,7 +102,9 @@ resource "terraform_data" "mqtt_throughput_tests" {
     var.test_duration,
     var.broker_instance_type,
     var.lavinmq_version,
-    var.num_runs
+    var.num_runs,
+    var.broker_source_ref,
+    var.load_generator_source_ref,
   ]
 
   # Upload test scripts
