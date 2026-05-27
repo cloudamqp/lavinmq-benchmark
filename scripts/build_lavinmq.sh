@@ -13,7 +13,7 @@ REPO_URL=$1
 GIT_REF=$2
 TARGET=$3
 
-apt-get install -y git
+apt-get install -y git make
 
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -22,26 +22,15 @@ git clone "$REPO_URL" "$WORK_DIR"
 cd "$WORK_DIR"
 git checkout "$GIT_REF"
 
-# Install the Crystal version required by this source tree (if specified),
-# otherwise upgrade to the latest available from the configured apt repo.
-if [ -f ".crystal-version" ]; then
-  CRYSTAL_VERSION=$(cat .crystal-version)
-  apt-get install -y "crystal=${CRYSTAL_VERSION}-1"
-else
-  apt-get install -y crystal
-fi
-
-shards install --without-development
-
 case "$TARGET" in
   broker)
-    shards build lavinmq --production --no-debug
+    make bin/lavinmq
     systemctl stop lavinmq.service
     install -m 755 bin/lavinmq /usr/bin/lavinmq
     systemctl start lavinmq.service
     ;;
   perf)
-    shards build lavinmqperf --production --no-debug
+    make bin/lavinmqperf
     install -m 755 bin/lavinmqperf /usr/bin/lavinmqperf
     ;;
   *)
