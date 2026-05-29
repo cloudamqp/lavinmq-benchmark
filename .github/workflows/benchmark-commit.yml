@@ -5,7 +5,7 @@ on:
     inputs:
       broker_url:
         description: >
-          GitHub URL for the broker binary (leave empty to use lavinmq_version).
+          Broker: GitHub URL for the broker binary (leave empty to use lavinmq_version).
           Supports commit, branch, and PR URLs, e.g.:
           https://github.com/cloudamqp/lavinmq/commit/b03008651b
         required: false
@@ -13,7 +13,7 @@ on:
         default: ""
       load_generator_url:
         description: >
-          GitHub URL for the lavinmqperf binary (leave empty to use lavinmq_version).
+          Load Generator: GitHub URL for the lavinmqperf binary (leave empty to use lavinmq_version).
           Same URL formats as broker_url.
         required: false
         type: string
