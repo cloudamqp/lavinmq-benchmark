@@ -104,6 +104,17 @@ jobs:
               exit 1
             fi
 
+            # The ref is interpolated into a shell command that runs via sudo on
+            # the remote box (build_lavinmq.sh). Reject anything outside the
+            # git-ref-safe, shell-safe set so an odd branch name can neither
+            # break the command nor inject into it.
+            case "$REF" in
+              *[!A-Za-z0-9._/-]*)
+                echo "::error::Unsafe characters in ref: $REF (allowed: A-Za-z0-9 . _ / -)" >&2
+                exit 1
+                ;;
+            esac
+
             echo "$REPO_URL"
             echo "$REF"
           }
@@ -133,11 +144,24 @@ jobs:
             exit 1
           fi
 
-          # Parse broker URL
-          read -r BROKER_REPO BROKER_REF <<< "$(parse_url "$BROKER_URL" | tr '\n' ' ')"
+          # Parse broker URL (parse_url exits non-zero on an unsupported URL)
+          BROKER_PARSED=$(parse_url "$BROKER_URL") || exit 1
+          read -r BROKER_REPO BROKER_REF <<< "$(printf '%s' "$BROKER_PARSED" | tr '\n' ' ')"
 
           # Parse load generator URL
-          read -r LG_REPO LG_REF <<< "$(parse_url "$LG_URL" | tr '\n' ' ')"
+          LG_PARSED=$(parse_url "$LG_URL") || exit 1
+          read -r LG_REPO LG_REF <<< "$(printf '%s' "$LG_PARSED" | tr '\n' ' ')"
+
+          # A non-empty URL must yield a repo; fail loudly rather than silently
+          # benchmarking the apt package under a garbage label.
+          if [ -n "$BROKER_URL" ] && [ -z "$BROKER_REPO" ]; then
+            echo "::error::Failed to parse broker_url: $BROKER_URL"
+            exit 1
+          fi
+          if [ -n "$LG_URL" ] && [ -z "$LG_REPO" ]; then
+            echo "::error::Failed to parse load_generator_url: $LG_URL"
+            exit 1
+          fi
 
           # Derive label
           BROKER_LABEL=$(derive_label "$BROKER_REF")

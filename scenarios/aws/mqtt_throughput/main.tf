@@ -132,7 +132,7 @@ resource "terraform_data" "mqtt_throughput_tests" {
     ]
   }
 
-  depends_on = [module.broker.user_ids, module.mqtt_tools]
+  depends_on = [module.broker, module.mqtt_tools]
 }
 
 # Outputs
