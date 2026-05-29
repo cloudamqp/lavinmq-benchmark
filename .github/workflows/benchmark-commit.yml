@@ -8,8 +8,6 @@ on:
           GitHub URL for the broker binary (leave empty to use lavinmq_version).
           Supports commit, branch, and PR URLs, e.g.:
           https://github.com/cloudamqp/lavinmq/commit/b03008651b
-          https://github.com/cloudamqp/lavinmq/pull/1971/changes/b03008651b
-          https://github.com/<user>/lavinmq/tree/my-branch
         required: false
         type: string
         default: ""
