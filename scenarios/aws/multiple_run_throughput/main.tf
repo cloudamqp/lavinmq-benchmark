@@ -52,6 +52,8 @@ module "broker" {
   install_lavinmq     = true
   configure_lavinmq   = true
   create_lavinmq_user = true
+  source_repo         = var.broker_source_repo
+  source_ref          = var.broker_source_ref
 }
 
 module "load_generator" {
@@ -71,6 +73,8 @@ module "load_generator" {
   lavinmq_version = "" // Use latest version
   install_lavinmq = true
   stop_lavinmq    = true
+  source_repo     = var.load_generator_source_repo
+  source_ref      = var.load_generator_source_ref
 }
 
 # Custom resource to run multiple throughput tests
@@ -88,7 +92,9 @@ resource "terraform_data" "multiple_throughput_tests" {
     var.test_duration,
     var.broker_instance_type,
     var.lavinmq_version,
-    var.num_runs
+    var.num_runs,
+    var.broker_source_ref,
+    var.load_generator_source_ref,
   ]
 
   # Upload the test script
@@ -101,7 +107,9 @@ resource "terraform_data" "multiple_throughput_tests" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/ubuntu/run_multiple_throughput_tests.sh",
-      format("/home/ubuntu/run_multiple_throughput_tests.sh %s %s %s %s %s",
+      format("BROKER_SOURCE_REF='%s' LG_SOURCE_REF='%s' /home/ubuntu/run_multiple_throughput_tests.sh %s %s %s %s %s",
+        var.broker_source_ref,
+        var.load_generator_source_ref,
         module.broker.private_ip,
         join(",", var.message_sizes),
         var.test_duration,
@@ -111,7 +119,7 @@ resource "terraform_data" "multiple_throughput_tests" {
     ]
   }
 
-  depends_on = [module.broker.user_ids, module.load_generator]
+  depends_on = [module.broker, module.load_generator]
 }
 
 # Outputs

@@ -5,17 +5,15 @@ on:
     inputs:
       broker_url:
         description: >
-          GitHub URL for the broker binary (leave empty to use lavinmq_version).
+          Broker: GitHub URL for the broker binary (leave empty to use lavinmq_version).
           Supports commit, branch, and PR URLs, e.g.:
           https://github.com/cloudamqp/lavinmq/commit/b03008651b
-          https://github.com/cloudamqp/lavinmq/pull/1971/changes/b03008651b
-          https://github.com/<user>/lavinmq/tree/my-branch
         required: false
         type: string
         default: ""
       load_generator_url:
         description: >
-          GitHub URL for the lavinmqperf binary (leave empty to use lavinmq_version).
+          Load Generator: GitHub URL for the lavinmqperf binary (leave empty to use lavinmq_version).
           Same URL formats as broker_url.
         required: false
         type: string
@@ -106,6 +104,17 @@ jobs:
               exit 1
             fi
 
+            # The ref is interpolated into a shell command that runs via sudo on
+            # the remote box (build_lavinmq.sh). Reject anything outside the
+            # git-ref-safe, shell-safe set so an odd branch name can neither
+            # break the command nor inject into it.
+            case "$REF" in
+              *[!A-Za-z0-9._/-]*)
+                echo "::error::Unsafe characters in ref: $REF (allowed: A-Za-z0-9 . _ / -)" >&2
+                exit 1
+                ;;
+            esac
+
             echo "$REPO_URL"
             echo "$REF"
           }
@@ -116,9 +125,11 @@ jobs:
               echo ""
               return
             fi
-            # Commit hash (7-40 hex chars) → truncate to 8 chars
+            # Commit hash (7-40 hex chars) → prefix with "commit-" + truncate to 8 chars.
+            # GitHub rejects branch names whose last path component is all-hex
+            # (looks like a commit SHA), so we must add a non-hex prefix.
             if echo "$REF" | grep -qE '^[0-9a-f]{7,40}$'; then
-              echo "${REF:0:8}"
+              echo "commit-${REF:0:8}"
             else
               # Branch name → sanitize (/ → -, strip non-alphanum except . _ -)
               echo "$REF" | sed 's|/|-|g; s|[^a-zA-Z0-9._-]|-|g'
@@ -133,11 +144,24 @@ jobs:
             exit 1
           fi
 
-          # Parse broker URL
-          read -r BROKER_REPO BROKER_REF <<< "$(parse_url "$BROKER_URL" | tr '\n' ' ')"
+          # Parse broker URL (parse_url exits non-zero on an unsupported URL)
+          BROKER_PARSED=$(parse_url "$BROKER_URL") || exit 1
+          read -r BROKER_REPO BROKER_REF <<< "$(printf '%s' "$BROKER_PARSED" | tr '\n' ' ')"
 
           # Parse load generator URL
-          read -r LG_REPO LG_REF <<< "$(parse_url "$LG_URL" | tr '\n' ' ')"
+          LG_PARSED=$(parse_url "$LG_URL") || exit 1
+          read -r LG_REPO LG_REF <<< "$(printf '%s' "$LG_PARSED" | tr '\n' ' ')"
+
+          # A non-empty URL must yield a repo; fail loudly rather than silently
+          # benchmarking the apt package under a garbage label.
+          if [ -n "$BROKER_URL" ] && [ -z "$BROKER_REPO" ]; then
+            echo "::error::Failed to parse broker_url: $BROKER_URL"
+            exit 1
+          fi
+          if [ -n "$LG_URL" ] && [ -z "$LG_REPO" ]; then
+            echo "::error::Failed to parse load_generator_url: $LG_URL"
+            exit 1
+          fi
 
           # Derive label
           BROKER_LABEL=$(derive_label "$BROKER_REF")
@@ -173,7 +197,7 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
     uses: ./.github/workflows/benchmark-latency.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      lavinmq_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -190,7 +214,7 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
     uses: ./.github/workflows/benchmark-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      lavinmq_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -207,7 +231,7 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'mqtt-throughput'
     uses: ./.github/workflows/benchmark-mqtt-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version || '0' }}
+      lavinmq_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}

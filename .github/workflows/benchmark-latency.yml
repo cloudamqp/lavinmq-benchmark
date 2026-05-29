@@ -4,8 +4,9 @@ on:
   workflow_call:
     inputs:
       lavinmq_version:
-        required: true
+        required: false
         type: string
+        default: ""
       brokers:
         required: false
         type: string
@@ -19,6 +20,22 @@ on:
         type: string
         default: ""
       test_duration:
+        required: false
+        type: string
+        default: ""
+      broker_source_repo:
+        required: false
+        type: string
+        default: ""
+      broker_source_ref:
+        required: false
+        type: string
+        default: ""
+      load_generator_source_repo:
+        required: false
+        type: string
+        default: ""
+      load_generator_source_ref:
         required: false
         type: string
         default: ""
@@ -61,6 +78,10 @@ env:
   TF_VAR_load_generator_volume_size: "8"
   TF_VAR_lavinmq_version: ${{ inputs.lavinmq_version }}
   TF_VAR_test_duration: ${{ inputs.test_duration || '20' }}
+  TF_VAR_broker_source_repo: ${{ inputs.broker_source_repo }}
+  TF_VAR_broker_source_ref: ${{ inputs.broker_source_ref }}
+  TF_VAR_load_generator_source_repo: ${{ inputs.load_generator_source_repo }}
+  TF_VAR_load_generator_source_ref: ${{ inputs.load_generator_source_ref }}
   TF_VAR_rate_limits: "[10, 100, 1000, 10000, 50000, 100000, 200000, 500000]"
   TF_VAR_per_size_rate_limits: >-
     {"16":[10,100,1000,5000,10000,50000,100000,250000,500000],

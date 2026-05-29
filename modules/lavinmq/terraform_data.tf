@@ -112,3 +112,35 @@ resource "terraform_data" "stop_lavinmq" {
 
   depends_on = [terraform_data.install_lavinmq]
 }
+
+resource "terraform_data" "build_from_source" {
+  count = var.source_repo != "" ? 1 : 0
+
+  connection {
+    type  = "ssh"
+    user  = "ubuntu"
+    host  = var.public_dns
+    agent = true
+  }
+
+  triggers_replace = [var.source_repo, var.source_ref, var.build_target]
+
+  provisioner "file" {
+    source      = "../../../scripts/build_lavinmq.sh"
+    destination = "/tmp/build_lavinmq.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chmod +x /tmp/build_lavinmq.sh",
+      "sudo /tmp/build_lavinmq.sh '${var.source_repo}' '${var.source_ref}' '${var.build_target}'",
+    ]
+  }
+
+  depends_on = [
+    terraform_data.install_lavinmq,
+    terraform_data.configure_lavinmq,
+    terraform_data.create_user,
+    terraform_data.stop_lavinmq,
+  ]
+}

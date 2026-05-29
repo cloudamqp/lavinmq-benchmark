@@ -54,3 +54,15 @@ variable "create_lavinmq_user" {
   type    = bool
   default = false
 }
+
+variable "source_repo" {
+  description = "Git repository URL to clone and build the broker binary from. Empty = use apt-installed binary."
+  type        = string
+  default     = ""
+}
+
+variable "source_ref" {
+  description = "Git ref (branch or commit hash) to check out when building the broker from source."
+  type        = string
+  default     = ""
+}
