@@ -133,7 +133,7 @@ resource "terraform_data" "build_from_source" {
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/build_lavinmq.sh",
-      "sudo /tmp/build_lavinmq.sh ${var.source_repo} ${var.source_ref} ${var.build_target}",
+      "sudo /tmp/build_lavinmq.sh '${var.source_repo}' '${var.source_ref}' '${var.build_target}'",
     ]
   }
 

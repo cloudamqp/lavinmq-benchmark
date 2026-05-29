@@ -104,6 +104,17 @@ jobs:
               exit 1
             fi
 
+            # The ref is interpolated into a shell command that runs via sudo on
+            # the remote box (build_lavinmq.sh). Reject anything outside the
+            # git-ref-safe, shell-safe set so an odd branch name can neither
+            # break the command nor inject into it.
+            case "$REF" in
+              *[!A-Za-z0-9._/-]*)
+                echo "::error::Unsafe characters in ref: $REF (allowed: A-Za-z0-9 . _ / -)" >&2
+                exit 1
+                ;;
+            esac
+
             echo "$REPO_URL"
             echo "$REF"
           }
