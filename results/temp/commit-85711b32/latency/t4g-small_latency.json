@@ -1,6 +1,9 @@
 {
-  "instance_type": "c7a.large",
+  "instance_type": "t4g.small",
   "lavinmq_version": "2.8.1",
+  "lavinmqperf_version": "2.8.0",
+  "broker_source_ref": "",
+  "load_generator_source_ref": "85711b3290335c367908b0896c4e200bf1ba71f4",
   "duration": 20,
   "producers": 1,
   "consumers": 1,
