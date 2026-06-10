@@ -1,6 +1,7 @@
 {
   "instance_type": "z1d.large",
   "lavinmq_version": "2.4.0",
+  "load_generator_source_ref": "85711b3290335c367908b0896c4e200bf1ba71f4",
   "duration": 20,
   "producers": 1,
   "consumers": 1,
