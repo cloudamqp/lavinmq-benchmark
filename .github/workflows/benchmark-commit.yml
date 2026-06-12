@@ -197,7 +197,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
     uses: ./.github/workflows/benchmark-latency.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.lavinmq_version }}
+      load_generator_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -214,7 +215,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
     uses: ./.github/workflows/benchmark-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.lavinmq_version }}
+      load_generator_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -231,7 +233,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'mqtt-throughput'
     uses: ./.github/workflows/benchmark-mqtt-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.lavinmq_version }}
+      load_generator_version: ${{ inputs.lavinmq_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
