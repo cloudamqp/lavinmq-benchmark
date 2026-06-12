@@ -3,7 +3,11 @@ name: Benchmark – MQTT Throughput
 on:
   workflow_call:
     inputs:
-      lavinmq_version:
+      broker_version:
+        required: false
+        type: string
+        default: ""
+      load_generator_version:
         required: false
         type: string
         default: ""
@@ -41,10 +45,15 @@ on:
         default: ""
   workflow_dispatch:
     inputs:
-      lavinmq_version:
-        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
+      broker_version:
+        description: "Broker LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
         required: true
         type: string
+      load_generator_version:
+        description: "Load generator LavinMQ version. Leave empty for latest stable."
+        required: false
+        type: string
+        default: ""
       brokers:
         description: "Comma-separated broker instance types to run (e.g. \"c8g.large\" or \"c8g.large,t4g.micro\"). Leave empty to run all."
         required: false
@@ -76,7 +85,8 @@ env:
   TF_VAR_num_runs: ${{ inputs.num_runs || '3' }}
   TF_VAR_broker_volume_size: "20"
   TF_VAR_load_generator_volume_size: "8"
-  TF_VAR_lavinmq_version: ${{ inputs.lavinmq_version }}
+  TF_VAR_broker_version: ${{ inputs.broker_version }}
+  TF_VAR_load_generator_version: ${{ inputs.load_generator_version }}
   TF_VAR_test_duration: ${{ inputs.test_duration || '60' }}
   TF_VAR_broker_source_repo: ${{ inputs.broker_source_repo }}
   TF_VAR_broker_source_ref: ${{ inputs.broker_source_ref }}

@@ -72,7 +72,8 @@ TF_VAR_ubuntu_code_name = "noble"   # Ubuntu version
 # Benchmark server
 TF_VAR_broker_volume_size = 8          # Root disk size in GB
 TF_VAR_load_generator_volume_size = 8  # Root disk size in GB
-TF_VAR_lavinmq_version = ""            # Empty = latest, or specify version
+TF_VAR_broker_version = ""             # Empty = latest stable, or specify version (e.g. 2.7.0-rc.3)
+TF_VAR_load_generator_version = ""     # Empty = latest stable, or specify version
 
 # Test configuration
 TF_VAR_message_sizes = [16, 64, 256, 512, 1024, 4096, 16384, 65536]  # Message sizes in bytes
