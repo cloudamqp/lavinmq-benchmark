@@ -3,10 +3,15 @@ name: Benchmark
 on:
   workflow_dispatch:
     inputs:
-      lavinmq_version:
-        description: "LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
+      broker_version:
+        description: "Broker LavinMQ version to benchmark (e.g. 2.7.0-rc.3 or 2.7.0)"
         required: true
         type: string
+      load_generator_version:
+        description: "Load generator LavinMQ version. Leave empty for latest stable."
+        required: false
+        type: string
+        default: ""
       scenarios:
         description: "Which scenarios to run"
         required: true
@@ -57,7 +62,7 @@ permissions:
 # the results/v<ver> branch, so the worst case is one redundant run, never a
 # duplicate PR.
 concurrency:
-  group: benchmark-${{ inputs.lavinmq_version }}
+  group: benchmark-${{ inputs.broker_version }}
   cancel-in-progress: false
 
 jobs:
@@ -66,7 +71,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'latency'
     uses: ./.github/workflows/benchmark-latency.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.broker_version }}
+      load_generator_version: ${{ inputs.load_generator_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -78,7 +84,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'throughput'
     uses: ./.github/workflows/benchmark-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.broker_version }}
+      load_generator_version: ${{ inputs.load_generator_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -90,7 +97,8 @@ jobs:
     if: inputs.scenarios == 'all' || inputs.scenarios == 'mqtt-throughput'
     uses: ./.github/workflows/benchmark-mqtt-throughput.yml
     with:
-      lavinmq_version: ${{ inputs.lavinmq_version }}
+      broker_version: ${{ inputs.broker_version }}
+      load_generator_version: ${{ inputs.load_generator_version }}
       brokers: ${{ inputs.brokers }}
       num_runs: ${{ inputs.num_runs }}
       message_sizes: ${{ inputs.message_sizes }}
@@ -158,7 +166,7 @@ jobs:
       - name: Compute results path
         if: env.has_results == 'true'
         run: |
-          VERSION="${{ inputs.lavinmq_version }}"
+          VERSION="${{ inputs.broker_version }}"
           if echo "$VERSION" | grep -qE '-(rc|beta)\.'; then
             echo "RESULTS_SUBDIR=pre-release/v${VERSION}" >> "$GITHUB_ENV"
           else
@@ -177,7 +185,7 @@ jobs:
         if: env.has_results == 'true'
         run: |
           python scripts/aggregate_results.py \
-            --version "${{ inputs.lavinmq_version }}" \
+            --version "${{ inputs.broker_version }}" \
             --latency-dir         raw-results/latency \
             --throughput-dir      raw-results/throughput \
             --mqtt-throughput-dir raw-results/mqtt-throughput \
@@ -199,18 +207,31 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           add-paths: results/
-          draft: ${{ inputs.draft }}
+          draft: ${{ inputs.draft || needs.latency.result == 'failure' || needs.throughput.result == 'failure' || needs.mqtt_throughput.result == 'failure' }}
           branch: results/${{ env.RESULTS_SUBDIR }}
           base: main
-          title: "${{ inputs.pr_title || format('Benchmark results: v{0}', inputs.lavinmq_version) }}"
-          commit-message: "Add ${{ inputs.scenarios }} benchmark results for v${{ inputs.lavinmq_version }} [run ${{ github.run_id }}]"
+          title: "${{ inputs.pr_title || format('Benchmark results: v{0}', inputs.broker_version) }}"
+          commit-message: "Add ${{ inputs.scenarios }} benchmark results for v${{ inputs.broker_version }} [run ${{ github.run_id }}]"
           body: |
-            Automated benchmark results for LavinMQ **v${{ inputs.lavinmq_version }}**.
+            Automated benchmark results for LavinMQ **v${{ inputs.broker_version }}**.
 
             Run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             Scenarios: `${{ inputs.scenarios }}`
 
             Results are in `results/${{ env.RESULTS_SUBDIR }}/`. Additional scenarios can be added to this PR by triggering new runs with the same version.
+
+      - name: Mark PR ready for review
+        if: |
+          env.has_results == 'true' &&
+          !inputs.draft &&
+          needs.latency.result != 'failure' &&
+          needs.throughput.result != 'failure' &&
+          needs.mqtt_throughput.result != 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          gh pr ready "results/${{ env.RESULTS_SUBDIR }}" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
 
   # --------------------------------------------------------------------------
   # SUMMARY
@@ -224,13 +245,13 @@ jobs:
     steps:
       - name: Write job summary
         run: |
-          VERSION="v${{ inputs.lavinmq_version }}"
+          VERSION="v${{ inputs.broker_version }}"
           cat >> "$GITHUB_STEP_SUMMARY" << EOF
           ## Benchmark run: ${VERSION}
 
           | | Result |
           |---|---|
-          | LavinMQ version | \`${VERSION}\` |
+          | Broker version | \`${VERSION}\` |
           | Scenarios | \`${{ inputs.scenarios }}\` |
           | Latency jobs | ${{ needs.latency.result || 'skipped' }} |
           | Throughput jobs | ${{ needs.throughput.result || 'skipped' }} |

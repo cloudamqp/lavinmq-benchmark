@@ -79,5 +79,5 @@ jobs:
 
           while IFS= read -r v; do
             echo "→ dispatching benchmark for v${v}"
-            gh workflow run benchmark.yml -f lavinmq_version="$v" -f scenarios=all
+            gh workflow run benchmark.yml -f broker_version="$v" -f load_generator_version="$v" -f scenarios=all -f draft=false
           done < new.txt

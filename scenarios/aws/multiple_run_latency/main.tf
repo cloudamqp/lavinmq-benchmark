@@ -48,7 +48,7 @@ module "broker" {
 
   # Install lavinmq
   install_crystal     = true
-  lavinmq_version     = var.lavinmq_version
+  lavinmq_version     = var.broker_version
   install_lavinmq     = true
   configure_lavinmq   = true
   create_lavinmq_user = true
@@ -70,7 +70,7 @@ module "load_generator" {
 
   # Install lavinmq
   install_crystal = true
-  lavinmq_version = "" // Use latest version
+  lavinmq_version = var.load_generator_version
   install_lavinmq = true
   stop_lavinmq    = true
   source_repo     = var.load_generator_source_repo
@@ -86,14 +86,15 @@ resource "terraform_data" "multiple_latency_tests" {
     agent = true
   }
 
-  # Trigger replacement when message sizes, rate limits, test duration, broker instance type, lavinmq version, or num_runs changes
+  # Trigger replacement when message sizes, rate limits, test duration, broker instance type, broker/load_generator version, or num_runs changes
   triggers_replace = [
     join(",", var.message_sizes),
     join(",", var.rate_limits),
     join("|", [for s, r in var.per_size_rate_limits : "${s}:${join(",", r)}"]),
     var.test_duration,
     var.broker_instance_type,
-    var.lavinmq_version,
+    var.broker_version,
+    var.load_generator_version,
     var.num_runs,
     var.broker_source_ref,
     var.load_generator_source_ref,

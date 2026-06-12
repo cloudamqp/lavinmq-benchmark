@@ -41,7 +41,12 @@ variable "ssh_key_name" {
 
 # Benchmark servers
 
-variable "lavinmq_version" {
+variable "broker_version" {
+  type    = string
+  default = ""
+}
+
+variable "load_generator_version" {
   type    = string
   default = ""
 }
