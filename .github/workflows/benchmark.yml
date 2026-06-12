@@ -207,7 +207,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           add-paths: results/
-          draft: ${{ inputs.draft }}
+          draft: ${{ inputs.draft || needs.latency.result == 'failure' || needs.throughput.result == 'failure' || needs.mqtt_throughput.result == 'failure' }}
           branch: results/${{ env.RESULTS_SUBDIR }}
           base: main
           title: "${{ inputs.pr_title || format('Benchmark results: v{0}', inputs.broker_version) }}"
@@ -219,6 +219,19 @@ jobs:
             Scenarios: `${{ inputs.scenarios }}`
 
             Results are in `results/${{ env.RESULTS_SUBDIR }}/`. Additional scenarios can be added to this PR by triggering new runs with the same version.
+
+      - name: Mark PR ready for review
+        if: |
+          env.has_results == 'true' &&
+          !inputs.draft &&
+          needs.latency.result != 'failure' &&
+          needs.throughput.result != 'failure' &&
+          needs.mqtt_throughput.result != 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          gh pr ready "results/${{ env.RESULTS_SUBDIR }}" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
 
   # --------------------------------------------------------------------------
   # SUMMARY
