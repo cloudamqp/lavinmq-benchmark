@@ -29,7 +29,7 @@ rm /tmp/cloudamqp-erlang.gpg.tmp
 echo "deb [signed-by=/etc/apt/keyrings/cloudamqp-erlang.gpg] https://packagecloud.io/cloudamqp/erlang/${ID} ${VERSION_CODENAME} main" \
   > /etc/apt/sources.list.d/cloudamqp-erlang.list
 retry 5 apt-get update -qq > /dev/null
-retry 5 apt-get install -y -qq esl-erlang > /dev/null
+retry 5 apt-get install -y -qq "esl-erlang=1:28.*" > /dev/null
 
 # Install Java for mqttloader
 retry 5 apt-get install default-jre unzip -y -qq > /dev/null
@@ -40,7 +40,7 @@ mkdir -p "$TOOLS_DIR"
 
 cd "$TOOLS_DIR"
 rm -rf emqtt-bench
-retry 5 git clone https://github.com/emqx/emqtt-bench.git
+retry 5 git clone --depth 1 --branch 0.6.2 https://github.com/emqx/emqtt-bench.git
 cd emqtt-bench
 BUILD_WITHOUT_QUIC=1 make
 
