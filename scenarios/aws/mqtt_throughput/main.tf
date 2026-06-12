@@ -48,7 +48,7 @@ module "broker" {
 
   # Install lavinmq
   install_crystal     = true
-  lavinmq_version     = var.lavinmq_version
+  lavinmq_version     = var.broker_version
   install_lavinmq     = true
   configure_lavinmq   = true
   create_lavinmq_user = true
@@ -70,7 +70,7 @@ module "load_generator" {
 
   # Install lavinmq (for lavinmqperf, not used here but keeps instance consistent) # TODO
   install_crystal = true
-  lavinmq_version = ""
+  lavinmq_version = var.load_generator_version
   install_lavinmq = true
   stop_lavinmq    = true
   source_repo     = var.load_generator_source_repo
@@ -101,7 +101,8 @@ resource "terraform_data" "mqtt_throughput_tests" {
     join(",", var.message_sizes),
     var.test_duration,
     var.broker_instance_type,
-    var.lavinmq_version,
+    var.broker_version,
+    var.load_generator_version,
     var.num_runs,
     var.broker_source_ref,
     var.load_generator_source_ref,
