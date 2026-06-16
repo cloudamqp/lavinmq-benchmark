@@ -89,28 +89,34 @@ committed to a `results/v{version}` branch.
 ```shell
 # Run all benchmarks (AMQP throughput, AMQP latency, MQTT throughput) for all instance types
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=all
 
 # Latency only
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=latency
 
 # AMQP throughput only
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=throughput
 
 # MQTT throughput only
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=mqtt-throughput
+
+# Pin a specific load generator version (leave empty to use latest stable)
+gh workflow run benchmark.yml \
+  -f broker_version=2.7.0 \
+  -f load_generator_version=2.7.0 \
+  -f scenarios=all
 
 # Run from a specific branch (e.g. when testing workflow changes)
 gh workflow run benchmark.yml \
   -r my-branch \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=all
 ```
 
@@ -126,13 +132,13 @@ re-running a single instance type that failed without triggering the full suite.
 ```shell
 # Re-run latency benchmark for a single instance type
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=latency \
   -f brokers="c8g.large"
 
 # Re-run latency benchmark for multiple specific instance types
 gh workflow run benchmark.yml \
-  -f lavinmq_version=2.7.0 \
+  -f broker_version=2.7.0 \
   -f scenarios=latency \
   -f brokers="c8g.large,t4g.medium"
 ```
