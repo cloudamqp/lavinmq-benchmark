@@ -24,6 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
 SCENARIOS = ("throughput", "latency", "mqtt_throughput")
+SKIP_SIZES_CONFIG = Path(__file__).resolve().parent / "throughput_skip_sizes.json"
+HIDDEN_INSTANCES_CONFIG = Path(__file__).resolve().parent / "website_hidden_instances.json"
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 PRE_VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[-.].+$")
 
@@ -35,6 +37,30 @@ def version_sort_key(name: str) -> tuple:
 
 def instance_from_filename(name: str) -> str:
     return name.split("_", 1)[0].replace("-", ".")
+
+
+def load_throughput_skip_sizes() -> dict[str, set[int]]:
+    """instance -> message sizes to omit from published throughput data.
+
+    These sizes throttle to the instance's AWS network baseline rather than
+    measuring LavinMQ, so they are redacted from old and new results alike.
+    Shared with skip_sizes in benchmark-throughput.yml. See issue #90.
+    """
+    if not SKIP_SIZES_CONFIG.exists():
+        return {}
+    raw = json.loads(SKIP_SIZES_CONFIG.read_text())
+    return {inst: set(sizes) for inst, sizes in raw.items()}
+
+
+def load_hidden_instances() -> set[str]:
+    """Instances that are benchmarked but omitted from all published website data.
+
+    Raw CSVs stay in git; only the aggregated JSON the charts read drops them.
+    See issue #90.
+    """
+    if not HIDDEN_INSTANCES_CONFIG.exists():
+        return set()
+    return set(json.loads(HIDDEN_INSTANCES_CONFIG.read_text()))
 
 
 def median(values: list) -> float | None:
@@ -120,6 +146,8 @@ def main() -> None:
     entries = collect_entries()
     versions = sorted({v for v, _, _, _ in entries}, key=version_sort_key)
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    throughput_skips = load_throughput_skip_sizes()
+    hidden_instances = load_hidden_instances()
 
     for scenario in SCENARIOS:
         aggregator = aggregate_latency if scenario == "latency" else aggregate_throughput
@@ -127,6 +155,10 @@ def main() -> None:
         for v, s, inst, path in entries:
             if s == scenario:
                 rows += aggregator(v, inst, path)
+        if hidden_instances:
+            rows = [r for r in rows if r["instance"] not in hidden_instances]
+        if scenario == "throughput":
+            rows = [r for r in rows if r["size"] not in throughput_skips.get(r["instance"], ())]
         target = RESULTS / f"{scenario}.json"
         target.write_text(json.dumps({
             "generated_at": generated_at,

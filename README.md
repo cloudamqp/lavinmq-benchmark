@@ -80,6 +80,9 @@ infrastructure, runs benchmarks across all supported instance types in parallel,
 results into markdown summary files, and opens a pull request against `main` with the results
 committed to a `results/v{version}` branch.
 
+See [docs/pipeline.md](docs/pipeline.md) for diagrams of the AWS infrastructure and the CI
+workflow, from release trigger to published results.
+
 ### Triggering a run
 
 **Via the GitHub UI:** go to **Actions → Benchmark → Run workflow**, fill in the version and pick a scenario.
@@ -145,6 +148,20 @@ gh workflow run benchmark.yml \
 
 The individual `benchmark-latency.yml`, `benchmark-throughput.yml`, and `benchmark-mqtt-throughput.yml`
 workflows can also be triggered directly in the same way if you want to skip the aggregate/PR step.
+
+### Network limits
+
+At larger message sizes the throughput test can outrun an instance's sustained AWS network
+bandwidth once its burst allowance is spent, giving unreliable numbers. Two configs keep that out
+of the published charts (raw CSVs stay in git):
+
+- `scripts/throughput_skip_sizes.json` — sizes skipped per instance (`t4g.micro`, `r7g.medium` at
+  65536 B). The workflow skips them on new runs; `build_data.py` also redacts them from old data.
+- `scripts/website_hidden_instances.json` — instances still benchmarked but hidden from all charts
+  (`z1d.large`, whose large-message throughput is bandwidth-bound, not LavinMQ-bound).
+
+Latency is unaffected: its per-size rate limits keep demand below every baseline. See
+[issue #90](../../issues/90).
 
 ## Publishing results
 
