@@ -104,6 +104,7 @@ jobs:
       - name: Build matrix
         id: filter
         run: |
+          # Per-broker unreliable sizes are dropped later from scripts/throughput_skip_sizes.json.
           FULL_MATRIX='[
             {"broker":"t4g.micro",  "arch":"arm64","load_generator":"c8g.large"},
             {"broker":"t4g.small",  "arch":"arm64","load_generator":"c8g.large"},
@@ -152,6 +153,14 @@ jobs:
           echo "broker_safe=${BROKER_SAFE}"    >> "$GITHUB_ENV"
           echo "ssh_key_name=${SSH_KEY_NAME}"  >> "$GITHUB_ENV"
           echo "state_file=${STATE_FILE}"      >> "$GITHUB_ENV"
+          # Drop this broker's unreliable sizes (same config the website redaction uses, issue #90).
+          SKIP_MAP=$(cat scripts/throughput_skip_sizes.json)
+          MSG_SIZES=$(printf '%s' "$DEFAULT_MSG_SIZES" | jq -c --argjson skip "$SKIP_MAP" --arg b "$BROKER" \
+            '($skip[$b] // []) as $s | map(select(. as $x | $s | index($x) | not))')
+          echo "msg_sizes=${MSG_SIZES}"        >> "$GITHUB_ENV"
+        env:
+          DEFAULT_MSG_SIZES: ${{ env.TF_VAR_message_sizes }}
+          BROKER: ${{ matrix.broker }}
 
       - name: Write SSH public key
         env:
@@ -175,6 +184,7 @@ jobs:
           terraform apply -auto-approve \
             -state="${{ env.state_file }}" \
             -var "ami_arch=${{ matrix.arch }}" \
+            -var "message_sizes=${{ env.msg_sizes }}" \
             -var "broker_instance_type=${{ matrix.broker }}" \
             -var "broker_name=benchmark-broker-${{ env.broker_safe }}" \
             -var "load_generator_instance_type=${{ matrix.load_generator }}" \
