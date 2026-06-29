@@ -1,6 +1,9 @@
 {
   "instance_type": "z1d.large",
   "lavinmq_version": "2.7.2",
+  "lavinmqperf_version": "2.9.0",
+  "broker_source_ref": "",
+  "load_generator_source_ref": "",
   "duration": 20,
   "producers": 1,
   "consumers": 1,
