@@ -110,6 +110,20 @@ for SIZE in "${SIZE_ARRAY[@]}"; do
   echo "Run,RateLimit,Min,Median,P75,P95,P99,PubRate,PubBW,ConBW" > "$SIZE_CSV"
 done
 
+# DEBUGGING: poll broker/connection/TCP/process state every 5s straight to stdout, so it lands in the CI job log without needing SSH access afterward
+( while true; do
+    STATS=$(curl -s -u perftest:perftest "http://$BROKER_IP:15672/api/queues/%2F/$QUEUE_NAME" \
+      | jq -c '{ready: .messages_ready, unacked: .messages_unacknowledged, consumers: .consumers}' 2>/dev/null)
+    BLOCKED=$(curl -s -u perftest:perftest "http://$BROKER_IP:15672/api/connections" \
+      | jq -c '[.[] | select(.user=="perftest") | {blocked: .blocked}]' 2>/dev/null)
+    TCP=$(ss -tn 2>/dev/null | grep ":5672" | awk '{print $1,$2,$3}')
+    PROC=$(ps -o pid,%cpu,stat,etime -p "$(pgrep -f lavinmqperf | head -1)" 2>/dev/null | tail -1)
+    echo "[POLL] $(date -u +%H:%M:%S) queue=$STATS conn=$BLOCKED tcp='$TCP' proc='$PROC'"
+    sleep 5
+  done ) &
+POLL_PID=$!
+trap 'kill "$POLL_PID" 2>/dev/null' EXIT
+
 # Run tests: outer loop = runs, middle = sizes, inner = rates
 for RUN in $(seq 1 "$NUM_RUNS"); do
   echo "=========================================="
