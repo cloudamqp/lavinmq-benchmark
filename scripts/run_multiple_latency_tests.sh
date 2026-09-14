@@ -112,10 +112,12 @@ done
 
 # DEBUGGING: poll broker/connection/TCP/process state every 5s straight to stdout, so it lands in the CI job log without needing SSH access afterward
 ( while true; do
-    STATS=$(curl -s -u perftest:perftest "http://$BROKER_IP:15672/api/queues/%2F/$QUEUE_NAME" \
+    STATS=$(curl -s --max-time 3 -u perftest:perftest "http://$BROKER_IP:15672/api/queues/%2F/$QUEUE_NAME" \
       | jq -c '{ready: .messages_ready, unacked: .messages_unacknowledged, consumers: .consumers}' 2>/dev/null)
-    BLOCKED=$(curl -s -u perftest:perftest "http://$BROKER_IP:15672/api/connections" \
+    [ -z "$STATS" ] && STATS="TIMEOUT"
+    BLOCKED=$(curl -s --max-time 3 -u perftest:perftest "http://$BROKER_IP:15672/api/connections" \
       | jq -c '[.[] | select(.user=="perftest") | {blocked: .blocked}]' 2>/dev/null)
+    [ -z "$BLOCKED" ] && BLOCKED="TIMEOUT"
     TCP=$(ss -tn 2>/dev/null | grep ":5672" | awk '{print $1,$2,$3}')
     PROC=$(ps -o pid,%cpu,stat,etime -p "$(pgrep -f lavinmqperf | head -1)" 2>/dev/null | tail -1)
     echo "[POLL] $(date -u +%H:%M:%S) queue=$STATS conn=$BLOCKED tcp='$TCP' proc='$PROC'"
