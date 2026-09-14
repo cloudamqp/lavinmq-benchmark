@@ -217,7 +217,7 @@ jobs:
           if-no-files-found: error
 
       - name: Terraform destroy
-        if: always()
+        if: steps.apply.outcome == 'success'
         working-directory: scenarios/aws/multiple_run_latency
         run: |
           terraform destroy -auto-approve \
