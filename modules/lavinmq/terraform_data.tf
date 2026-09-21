@@ -61,7 +61,17 @@ resource "terraform_data" "configure_lavinmq" {
   provisioner "remote-exec" {
     inline = [
       "sudo sed -i '/^\\[main\\]/a tcp_nodelay = true' /etc/lavinmq/lavinmq.ini",
-      "sudo systemctl restart lavinmq.service"
+      "sudo systemctl restart lavinmq.service",
+      # DEBUGGING: dump kernel/AMI/instance info once to help correlate stalls with a specific kernel build
+      "echo '=== Diagnostics ==='",
+      "uname -a",
+      "cat /proc/version",
+      "TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')",
+      "echo \"AMI ID: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/ami-id)\"",
+      "echo \"Instance ID: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/instance-id)\"",
+      "echo \"Instance Type: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/instance-type)\"",
+      "dmesg | grep -iE 'erratum|workaround|4118414' || echo 'No erratum-related dmesg entries found'",
+      "echo '===================='"
     ]
   }
 
