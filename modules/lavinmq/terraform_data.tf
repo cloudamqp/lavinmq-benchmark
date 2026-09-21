@@ -67,10 +67,13 @@ resource "terraform_data" "configure_lavinmq" {
       "uname -a",
       "cat /proc/version",
       "TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')",
-      "echo \"AMI ID: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/ami-id)\"",
-      "echo \"Instance ID: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/instance-id)\"",
-      "echo \"Instance Type: $(curl -s -H \\\"X-aws-ec2-metadata-token: $TOKEN\\\" http://169.254.169.254/latest/meta-data/instance-type)\"",
-      "dmesg | grep -iE 'erratum|workaround|4118414' || echo 'No erratum-related dmesg entries found'",
+      "AMI_ID=$(curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/ami-id)",
+      "echo \"AMI ID: $AMI_ID\"",
+      "INSTANCE_ID=$(curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)",
+      "echo \"Instance ID: $INSTANCE_ID\"",
+      "INSTANCE_TYPE=$(curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/instance-type)",
+      "echo \"Instance Type: $INSTANCE_TYPE\"",
+      "sudo dmesg | grep -iE 'erratum|workaround|4118414' || echo 'No erratum-related dmesg entries found'",
       "echo '===================='"
     ]
   }
