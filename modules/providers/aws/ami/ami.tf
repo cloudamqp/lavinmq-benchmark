@@ -14,7 +14,7 @@ data "aws_ami" "ubuntu" {
   # DEBUGGING: pinned to the 2025-06-24 arm64 Ubuntu 24.04 AMI (known-good, kernel predates the suspected ARM64_ERRATUM_4118414 range) instead of most_recent, to isolate whether kernel/AMI drift explains the r7g.large/xlarge stalls
   filter {
     name   = "image-id"
-    values = ["ami-00143d563a951c8e4"]
+    values = ["ami-01da1dbf9ea3a6ee6"]
   }
 
   filter {
