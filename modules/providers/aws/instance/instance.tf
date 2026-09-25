@@ -47,3 +47,7 @@ output "public_dns" {
 output "private_ip" {
   value = aws_instance.instance.private_ip
 }
+
+output "diagnostics_id" {
+  value = terraform_data.diagnostics.id
+}

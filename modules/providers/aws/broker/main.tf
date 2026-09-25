@@ -22,6 +22,8 @@ module "install_lavinmq" {
   source_repo         = var.source_repo
   source_ref          = var.source_ref
   build_target        = "broker"
+
+  depends_on = [module.instance.diagnostics_id]
 }
 
 output "public_dns" {
