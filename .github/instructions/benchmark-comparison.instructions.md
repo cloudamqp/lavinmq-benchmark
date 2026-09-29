@@ -46,7 +46,18 @@ When comparing a new LavinMQ benchmark release:
    - Summarize MQTT throughput.
    - List the strongest improvements.
    - List the most important regressions or invalid results.
-   - State whether the release looks ready based on the benchmark evidence.
+   - Focus on identifying significant regressions; do not assume every release is intended to improve throughput or latency.
+   - Distinguish meaningful changes from normal benchmark variation.
+   - Identify reruns caused by infrastructure, kernel, AMI, or benchmark failures.
+   - State whether the evidence shows a significant regression, is broadly stable, or is inconclusive.
    - Keep this section suitable for manually adding to the benchmark results PR as a commit or PR comment.
 
-The comparison output should be concise, evidence-based, and organized for potential inclusion in a GitHub PR description or comment.
+6. End the comparison with a `Conclusion` subsection:
+   - Give a concise release-level interpretation of the comparison.
+   - State the strongest improvements or stable areas.
+   - State the most important regressions or unresolved differences.
+   - Clearly separate confirmed benchmark results from results affected by reruns or environment differences.
+   - Mention kernel/AMI differences when they affect direct comparability, especially for ARM Graviton instances.
+   - Do not attribute an observed change solely to LavinMQ when the environment differs between runs.
+
+The comparison output should be concise, evidence-based, and organized for potential inclusion in a GitHub PR description or comment. Its primary purpose is to identify significant regressions or confirm broadly stable behavior, not to require performance improvements in every release.
