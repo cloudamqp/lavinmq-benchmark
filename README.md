@@ -149,6 +149,31 @@ gh workflow run benchmark.yml \
 The individual `benchmark-latency.yml`, `benchmark-throughput.yml`, and `benchmark-mqtt-throughput.yml`
 workflows can also be triggered directly in the same way if you want to skip the aggregate/PR step.
 
+### Manual cleanup after a failed run
+
+Each job runs `terraform destroy` with `if: always()`, but if a job is cancelled, times out, or the
+destroy step itself fails, the AWS resources it created (VPC, subnet, internet gateway, EC2
+instances, ENIs, key pair) are left running. Since the Terraform state lives
+only on the ephemeral runner, it's gone too, so cleanup has to be done directly via the AWS
+console/CLI rather than by re-running `terraform destroy`.
+
+Leftover resources are tagged `CreatedBy = github-actions`. Delete them in this order, since later
+resources depend on earlier ones being gone:
+
+1. Terminate the 2 EC2 instances (broker + load generator). Their network interfaces are attached
+   to the subnet/VPC and block deletion otherwise.
+2. Wait until both show `terminated`.
+3. Detach the Internet Gateway from the VPC.
+4. Delete the Internet Gateway.
+5. Delete the network interfaces (ENIs) belonging to the two terminated instances, these aren't
+   always cleaned up automatically on termination and will block subnet/VPC deletion if left.
+6. Delete the subnet.
+7. Delete the VPC, this implicitly removes the default route table entries, default security
+   group rules, and the main route table association created in `network.tf`. No separate delete
+   needed for those.
+8. Delete the SSH key pair (`benchmark-ci-latency-<run_id>-<broker_safe>` or equivalent for the
+   other scenarios), independent of the above, can be done any time.
+
 ### Network limits
 
 At larger message sizes the throughput test can outrun an instance's sustained AWS network
