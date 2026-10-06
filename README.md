@@ -178,6 +178,14 @@ python3 scripts/build_data.py        # regenerate throughput/latency/mqtt_throug
 python3 scripts/serve.py             # serve results/ on http://127.0.0.1:8081 with CORS
 ```
 
+## AI-assisted result comparisons
+
+[`.github/instructions/benchmark-comparison.instructions.md`](.github/instructions/benchmark-comparison.instructions.md)
+guides AI coding agents (e.g. GitHub Copilot, Claude Code) through comparing benchmark summaries
+across releases, checking for missing or invalid runs, accounting for environment differences,
+and producing a concise writeup suitable for a PR description or comment. Ask your
+agent to compare results under `results/` (e.g. "compare v2.9.3 and v2.10.0 latency results") and it will pick up these instructions automatically.
+
 ## Logging
 
 Enable detailed Terraform provider logs by setting:
