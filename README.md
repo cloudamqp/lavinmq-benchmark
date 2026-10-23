@@ -196,6 +196,9 @@ with graphs and a UI to easier compare the numbers.
 Aggregated JSONs under `results/` are published to `benchmark.lavinmq.com` and consumed by the
 charts page in lavinmq-website.
 
+Publishing runs on every merge that touches `results/`, and once a day. A newer publish run cancels
+an older one still in flight, so a stuck deploy never blocks later results from going out.
+
 To preview a local copy, start jekyll in lavinmq-website and run the following here:
 
 ```shell
