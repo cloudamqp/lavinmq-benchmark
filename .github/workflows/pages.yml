@@ -8,6 +8,10 @@ on:
       - 'scripts/build_data.py'
       - 'scripts/build_latest.py'
       - '.github/workflows/pages.yml'
+  # Daily redeploy so a stuck or failed deploy heals itself even when no new
+  # results are merged.
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,13 +19,18 @@ permissions:
   pages: write
   id-token: write
 
+# Every run publishes the whole results/ tree from main, so a newer run fully
+# supersedes an older one. Cancelling the older run keeps a deploy that hangs
+# (e.g. stuck waiting on the github-pages environment) from blocking all later
+# deploys behind it.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
@@ -51,6 +60,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
