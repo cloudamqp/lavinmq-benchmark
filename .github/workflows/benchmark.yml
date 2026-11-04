@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       load_generator_version:
-        description: "Load generator LavinMQ version. Leave empty for latest stable."
+        description: "Load generator LavinMQ version. Leave empty for 2.10.2."
         required: false
         type: string
         default: ""

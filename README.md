@@ -110,7 +110,7 @@ gh workflow run benchmark.yml \
   -f broker_version=2.7.0 \
   -f scenarios=mqtt-throughput
 
-# Pin a specific load generator version (leave empty to use latest stable)
+# Pick the load generator version (empty means 2.10.2, a temporary pin, see #118)
 gh workflow run benchmark.yml \
   -f broker_version=2.7.0 \
   -f load_generator_version=2.7.0 \

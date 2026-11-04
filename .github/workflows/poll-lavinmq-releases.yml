@@ -79,5 +79,6 @@ jobs:
 
           while IFS= read -r v; do
             echo "→ dispatching benchmark for v${v}"
-            gh workflow run benchmark.yml -f broker_version="$v" -f load_generator_version="$v" -f scenarios=all -f draft=false
+            # Temporary pin to 2.10.2 (Crystal 1.21): lavinmqperf built with Crystal 1.22 stalls on x86 (#118)
+            gh workflow run benchmark.yml -f broker_version="$v" -f load_generator_version=2.10.2 -f scenarios=all -f draft=false
           done < new.txt
