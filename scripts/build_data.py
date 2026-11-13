@@ -26,8 +26,10 @@ RESULTS = ROOT / "results"
 SCENARIOS = ("throughput", "latency", "mqtt_throughput")
 SKIP_SIZES_CONFIG = Path(__file__).resolve().parent / "throughput_skip_sizes.json"
 HIDDEN_INSTANCES_CONFIG = Path(__file__).resolve().parent / "website_hidden_instances.json"
+VERSION_NOTES_CONFIG = Path(__file__).resolve().parent / "version_notes.json"
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 PRE_VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[-.].+$")
+MINOR_RE = re.compile(r"^v\d+\.\d+$")
 MIN_LATENCY_RATE_SHARE = 0.95
 
 
@@ -62,6 +64,17 @@ def load_hidden_instances() -> set[str]:
     if not HIDDEN_INSTANCES_CONFIG.exists():
         return set()
     return set(json.loads(HIDDEN_INSTANCES_CONFIG.read_text()))
+
+
+def load_version_notes() -> dict[str, str]:
+    """Minor release (e.g. "v2.11") -> note the charts show for that release."""
+    if not VERSION_NOTES_CONFIG.exists():
+        return {}
+    notes = json.loads(VERSION_NOTES_CONFIG.read_text())
+    for minor, text in notes.items():
+        if not MINOR_RE.match(minor) or not isinstance(text, str):
+            raise SystemExit(f"{VERSION_NOTES_CONFIG.name}: bad entry {minor!r}")
+    return notes
 
 
 def median(values: list) -> float | None:
@@ -160,6 +173,7 @@ def main() -> None:
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     throughput_skips = load_throughput_skip_sizes()
     hidden_instances = load_hidden_instances()
+    notes = load_version_notes()
 
     for scenario in SCENARIOS:
         aggregator = aggregate_latency if scenario == "latency" else aggregate_throughput
@@ -178,6 +192,7 @@ def main() -> None:
             "generated_at": generated_at,
             "scenario": scenario,
             "versions": versions,
+            "notes": notes,
             "data": rows,
         }, separators=(",", ":")) + "\n")
         print(f"wrote {target.relative_to(ROOT)} "

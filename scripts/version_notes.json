@@ -1,0 +1,3 @@
+{
+  "v2.11": "Many reliability fixes. AMQP throughput for small messages on Graviton (arm64) instances is 3–12% lower than in 2.10."
+}
