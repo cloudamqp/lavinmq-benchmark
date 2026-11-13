@@ -157,19 +157,18 @@ def collect_entries() -> list[tuple[str, str, str, Path]]:
 
 
 def newest_patches_only(entries: list[tuple[str, str, str, Path]]) -> list[tuple[str, str, str, Path]]:
-    """Keep only the newest patch of each minor release, per scenario."""
+    """Keep only the newest patch of each minor release, per scenario and instance."""
     newest: dict[tuple, str] = {}
-    for v, s, _, _ in entries:
+    for v, s, inst, _ in entries:
         if VERSION_RE.match(v):
-            key = (s, version_sort_key(v)[:2])
+            key = (s, inst, version_sort_key(v)[:2])
             newest[key] = max(newest.get(key, v), v, key=version_sort_key)
     return [e for e in entries
-            if not VERSION_RE.match(e[0]) or newest[(e[1], version_sort_key(e[0])[:2])] == e[0]]
+            if not VERSION_RE.match(e[0]) or newest[(e[1], e[2], version_sort_key(e[0])[:2])] == e[0]]
 
 
 def main() -> None:
     entries = newest_patches_only(collect_entries())
-    versions = sorted({v for v, _, _, _ in entries}, key=version_sort_key)
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     throughput_skips = load_throughput_skip_sizes()
     hidden_instances = load_hidden_instances()
@@ -177,6 +176,7 @@ def main() -> None:
 
     for scenario in SCENARIOS:
         aggregator = aggregate_latency if scenario == "latency" else aggregate_throughput
+        versions = sorted({v for v, s, _, _ in entries if s == scenario}, key=version_sort_key)
         rows = []
         for v, s, inst, path in entries:
             if s == scenario:

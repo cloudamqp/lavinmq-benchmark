@@ -192,11 +192,12 @@ Latency is unaffected: its per-size rate limits keep demand below every baseline
 
 `build_data.py` also applies two rules to the published JSONs (raw CSVs stay in git):
 
-- Only the newest patch of each minor release is shown, e.g. v2.10.6 for 2.10.
+- Only the newest patch of each minor release is shown, per instance, e.g. v2.10.6 for 2.10. If
+  a patch run misses an instance, that instance keeps its older patch.
 - A latency cell is shown only if its median publish rate reached 95% of the rate limit. Below
   that, the instance can't keep up and the result measures a backlog, not broker latency.
 
-Notes per minor release, go in `scripts/version_notes.json`
+Notes per minor release go in `scripts/version_notes.json`
 (e.g. `{"v2.11": "…"}`). The charts show them with the newest patch of that release.
 
 ## Publishing results
