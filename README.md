@@ -196,7 +196,7 @@ Latency is unaffected: its per-size rate limits keep demand below every baseline
 - A latency cell is shown only if its median publish rate reached 95% of the rate limit. Below
   that, the instance can't keep up and the result measures a backlog, not broker latency.
 
-Notes per minor release, such as a known change in throughput, go in `scripts/version_notes.json`
+Notes per minor release, go in `scripts/version_notes.json`
 (e.g. `{"v2.11": "…"}`). The charts show them with the newest patch of that release.
 
 ## Publishing results
