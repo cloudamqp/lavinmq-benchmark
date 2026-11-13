@@ -28,6 +28,7 @@ SKIP_SIZES_CONFIG = Path(__file__).resolve().parent / "throughput_skip_sizes.jso
 HIDDEN_INSTANCES_CONFIG = Path(__file__).resolve().parent / "website_hidden_instances.json"
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 PRE_VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[-.].+$")
+MIN_LATENCY_RATE_SHARE = 0.95
 
 
 def version_sort_key(name: str) -> tuple:
@@ -142,8 +143,19 @@ def collect_entries() -> list[tuple[str, str, str, Path]]:
     return entries
 
 
+def newest_patches_only(entries: list[tuple[str, str, str, Path]]) -> list[tuple[str, str, str, Path]]:
+    """Keep only the newest patch of each minor release, per scenario."""
+    newest: dict[tuple, str] = {}
+    for v, s, _, _ in entries:
+        if VERSION_RE.match(v):
+            key = (s, version_sort_key(v)[:2])
+            newest[key] = max(newest.get(key, v), v, key=version_sort_key)
+    return [e for e in entries
+            if not VERSION_RE.match(e[0]) or newest[(e[1], version_sort_key(e[0])[:2])] == e[0]]
+
+
 def main() -> None:
-    entries = collect_entries()
+    entries = newest_patches_only(collect_entries())
     versions = sorted({v for v, _, _, _ in entries}, key=version_sort_key)
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     throughput_skips = load_throughput_skip_sizes()
@@ -159,6 +171,8 @@ def main() -> None:
             rows = [r for r in rows if r["instance"] not in hidden_instances]
         if scenario == "throughput":
             rows = [r for r in rows if r["size"] not in throughput_skips.get(r["instance"], ())]
+        if scenario == "latency":
+            rows = [r for r in rows if r["pub_rate"] >= MIN_LATENCY_RATE_SHARE * r["rate_limit"]]
         target = RESULTS / f"{scenario}.json"
         target.write_text(json.dumps({
             "generated_at": generated_at,

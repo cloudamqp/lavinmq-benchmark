@@ -188,6 +188,14 @@ of the published charts (raw CSVs stay in git):
 Latency is unaffected: its per-size rate limits keep demand below every baseline. See
 [issue #90](../../issues/90).
 
+### What the website shows
+
+`build_data.py` also applies two rules to the published JSONs (raw CSVs stay in git):
+
+- Only the newest patch of each minor release is shown, e.g. v2.10.6 for 2.10.
+- A latency cell is shown only if its median publish rate reached 95% of the rate limit. Below
+  that, the instance can't keep up and the result measures a backlog, not broker latency.
+
 ## Publishing results
 
 Raw results are stored and available in this repository. These are also available at https://lavinmq.com/benchmark
