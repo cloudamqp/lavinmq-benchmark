@@ -26,8 +26,11 @@ RESULTS = ROOT / "results"
 SCENARIOS = ("throughput", "latency", "mqtt_throughput")
 SKIP_SIZES_CONFIG = Path(__file__).resolve().parent / "throughput_skip_sizes.json"
 HIDDEN_INSTANCES_CONFIG = Path(__file__).resolve().parent / "website_hidden_instances.json"
+VERSION_NOTES_CONFIG = Path(__file__).resolve().parent / "version_notes.json"
 VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 PRE_VERSION_RE = re.compile(r"^v\d+\.\d+\.\d+[-.].+$")
+MINOR_RE = re.compile(r"^v\d+\.\d+$")
+MIN_LATENCY_RATE_SHARE = 0.95
 
 
 def version_sort_key(name: str) -> tuple:
@@ -61,6 +64,17 @@ def load_hidden_instances() -> set[str]:
     if not HIDDEN_INSTANCES_CONFIG.exists():
         return set()
     return set(json.loads(HIDDEN_INSTANCES_CONFIG.read_text()))
+
+
+def load_version_notes() -> dict[str, str]:
+    """Minor release (e.g. "v2.11") -> note the charts show for that release."""
+    if not VERSION_NOTES_CONFIG.exists():
+        return {}
+    notes = json.loads(VERSION_NOTES_CONFIG.read_text())
+    for minor, text in notes.items():
+        if not MINOR_RE.match(minor) or not isinstance(text, str):
+            raise SystemExit(f"{VERSION_NOTES_CONFIG.name}: bad entry {minor!r}")
+    return notes
 
 
 def median(values: list) -> float | None:
@@ -142,15 +156,27 @@ def collect_entries() -> list[tuple[str, str, str, Path]]:
     return entries
 
 
+def newest_patches_only(entries: list[tuple[str, str, str, Path]]) -> list[tuple[str, str, str, Path]]:
+    """Keep only the newest patch of each minor release, per scenario and instance."""
+    newest: dict[tuple, str] = {}
+    for v, s, inst, _ in entries:
+        if VERSION_RE.match(v):
+            key = (s, inst, version_sort_key(v)[:2])
+            newest[key] = max(newest.get(key, v), v, key=version_sort_key)
+    return [e for e in entries
+            if not VERSION_RE.match(e[0]) or newest[(e[1], e[2], version_sort_key(e[0])[:2])] == e[0]]
+
+
 def main() -> None:
-    entries = collect_entries()
-    versions = sorted({v for v, _, _, _ in entries}, key=version_sort_key)
+    entries = newest_patches_only(collect_entries())
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     throughput_skips = load_throughput_skip_sizes()
     hidden_instances = load_hidden_instances()
+    notes = load_version_notes()
 
     for scenario in SCENARIOS:
         aggregator = aggregate_latency if scenario == "latency" else aggregate_throughput
+        versions = sorted({v for v, s, _, _ in entries if s == scenario}, key=version_sort_key)
         rows = []
         for v, s, inst, path in entries:
             if s == scenario:
@@ -159,11 +185,14 @@ def main() -> None:
             rows = [r for r in rows if r["instance"] not in hidden_instances]
         if scenario == "throughput":
             rows = [r for r in rows if r["size"] not in throughput_skips.get(r["instance"], ())]
+        if scenario == "latency":
+            rows = [r for r in rows if r["pub_rate"] >= MIN_LATENCY_RATE_SHARE * r["rate_limit"]]
         target = RESULTS / f"{scenario}.json"
         target.write_text(json.dumps({
             "generated_at": generated_at,
             "scenario": scenario,
             "versions": versions,
+            "notes": notes,
             "data": rows,
         }, separators=(",", ":")) + "\n")
         print(f"wrote {target.relative_to(ROOT)} "
